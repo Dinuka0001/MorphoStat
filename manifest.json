@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "locale": "en_US",
+  "platform": "4.3.2",
+  "metadata": {
+    "appmode": "shiny",
+    "primary_rmd": null,
+    "primary_html": null,
+    "content_category": null,
+    "has_parameters": false
+  },
+  "packages": {
+    "R6": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com",
+      "description": {
+        "Package": "R6",
+        "Title": "Encapsulated Classes with Reference Semantics"
+      }
+    },
+    "shiny": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com",
+      "description": {
+        "Package": "shiny",
+        "Title": "Web Application Framework for R"
+      }
+    },
+    "shinydashboard": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com",
+      "description": {
+        "Package": "shinydashboard",
+        "Title": "Create Dashboards with Shiny"
+      }
+    },
+    "bslib": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com",
+      "description": {
+        "Package": "bslib",
+        "Title": "Custom Bootstrap Sass Themes for shiny and rmarkdown"
+      }
+    },
+    "shinyjs": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com",
+      "description": {
+        "Package": "shinyjs",
+        "Title": "Easily Improve the User Experience of Your Shiny Apps in Seconds"
+      }
+    },
+    "geomorph": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com",
+      "description": {
+        "Package": "geomorph",
+        "Title": "Geometric Morphometric Analyses of 2D and 3D Landmark Data"
+      }
+    },
+    "ggplot2": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com",
+      "description": {
+        "Package": "ggplot2",
+        "Title": "Create Elegant Data Visualisations Using the Grammar of Graphics"
+      }
+    },
+    "RRPP": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com",
+      "description": {
+        "Package": "RRPP",
+        "Title": "Linear Model Evaluation with Randomized Residuals in a Permutation Procedure"
+      }
+    },
+    "colourpicker": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com",
+      "description": {
+        "Package": "colourpicker",
+        "Title": "A Colour Picker Tool for Shiny and for Selecting Colours in Plots"
+      }
+    },
+    "rgl": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com",
+      "description": {
+        "Package": "rgl",
+        "Title": "3D Visualization Using OpenGL"
+      }
+    },
+    "DT": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com",
+      "description": {
+        "Package": "DT",
+        "Title": "A Wrapper of the JavaScript Library DataTables"
+      }
+    },
+    "vegan": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com",
+      "description": {
+        "Package": "vegan",
+        "Title": "Community Ecology Package"
+      }
+    },
+    "Morpho": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com",
+      "description": {
+        "Package": "Morpho",
+        "Title": "Calculations and Visualisations Related to Geometric Morphometrics"
+      }
+    },
+    "rstatix": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com",
+      "description": {
+        "Package": "rstatix",
+        "Title": "Pipe-Friendly Framework for Basic Statistical Tests"
+      }
+    },
+    "scatterplot3d": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com",
+      "description": {
+        "Package": "scatterplot3d",
+        "Title": "3D Scatter Plot"
+      }
+    }
+  },
+  "files": {
+    "App.R": {
+      "checksum": "auto"
+    }
+  },
+  "users": null
+}
