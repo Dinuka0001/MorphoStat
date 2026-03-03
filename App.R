@@ -1603,7 +1603,7 @@ vtkMRMLMarkupsFiducialNode_2,-8.7,30.5,52.3,0,0,0,1,1,1,0,LM3,,
           hr(),
           tags$p(class = "text-center text-muted small mb-0", 
             icon("copyright", class = "me-1"),
-            "2026 Dinuka Adasooriya. All rights reserved."
+            "2025 Dinuka Adasooriya. All rights reserved."
           )
         )
       )
