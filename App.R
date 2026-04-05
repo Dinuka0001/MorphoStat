@@ -327,6 +327,7 @@ ui <- page_sidebar(
                   ),
                   checkboxInput("procrustes_show_wireframe", "Show Wireframe", value = TRUE),
                   checkboxInput("procrustes_show_mean", "Show Mean Shape", value = TRUE),
+                  checkboxInput("procrustes_show_data_points", "Show Data Points", value = TRUE),
                   checkboxInput("procrustes_show_landmarks", "Show Landmark Numbers", value = FALSE),
                   conditionalPanel(
                     condition = "input.procrustes_show_landmarks == true",
@@ -337,8 +338,11 @@ ui <- page_sidebar(
                       value = "#000000"
                     )
                   ),
-                  sliderInput("procrustes_point_size", "Point Size:",
-                    min = 0.5, max = 5, value = 2, step = 0.1
+                  conditionalPanel(
+                    condition = "input.procrustes_show_data_points == true",
+                    sliderInput("procrustes_point_size", "Data Point Size:",
+                      min = 0.5, max = 5, value = 2, step = 0.1
+                    )
                   ),
                   sliderInput("procrustes_line_width", "Line Width:",
                     min = 0.5, max = 5, value = 1.5, step = 0.1
@@ -456,8 +460,40 @@ ui <- page_sidebar(
                 checkboxInput("pca_show_labels", "Show Data Point Labels", value = FALSE),
                 checkboxInput("pca_show_grid", "Show Grid Lines", value = TRUE),
                 checkboxInput("pca_show_axis", "Show Axis Lines & Labels", value = TRUE),
+                checkboxInput("pca_dual_axis", "Show Complete Box (Dual Axis)", value = FALSE),
                 checkboxInput("pca_flip_x", "Flip X-axis", value = FALSE),
                 checkboxInput("pca_flip_y", "Flip Y-axis", value = FALSE),
+                sliderInput("pca_point_size", "Point Size:", min = 0.5, max = 8, value = 3, step = 0.5),
+                sliderInput("pca_point_stroke", "Point Outline:", min = 0, max = 3, value = 1.5, step = 0.1),
+                hr(),
+                tags$p(class = "section-header", icon("sliders-h", class = "me-1"), "Axis Range & Scale"),
+                checkboxInput("pca_custom_range", "Custom Axis Range", value = FALSE),
+                conditionalPanel(
+                  condition = "input.pca_custom_range == true",
+                  fluidRow(
+                    column(6, numericInput("pca_x_min", "X Min:", value = 0, step = 0.01)),
+                    column(6, numericInput("pca_x_max", "X Max:", value = 0, step = 0.01))
+                  ),
+                  fluidRow(
+                    column(6, numericInput("pca_y_min", "Y Min:", value = 0, step = 0.01)),
+                    column(6, numericInput("pca_y_max", "Y Max:", value = 0, step = 0.01))
+                  ),
+                  conditionalPanel(
+                    condition = "input.pca_plot_type == '3d'",
+                    fluidRow(
+                      column(6, numericInput("pca_z_min", "Z Min:", value = 0, step = 0.01)),
+                      column(6, numericInput("pca_z_max", "Z Max:", value = 0, step = 0.01))
+                    )
+                  )
+                ),
+                checkboxInput("pca_custom_breaks", "Custom Axis Intervals (2D only)", value = FALSE),
+                conditionalPanel(
+                  condition = "input.pca_custom_breaks == true && input.pca_plot_type != '3d'",
+                  fluidRow(
+                    column(6, numericInput("pca_x_interval", "X Interval:", value = 0.05, min = 0.001, step = 0.01)),
+                    column(6, numericInput("pca_y_interval", "Y Interval:", value = 0.05, min = 0.001, step = 0.01))
+                  )
+                ),
                 hr(),
                 tags$p(class = "section-header", icon("chart-area", class = "me-1"), "Data Spread Visualization"),
                 conditionalPanel(
@@ -536,22 +572,16 @@ ui <- page_sidebar(
                   selectInput("pc_z", "Z-axis (3D):",
                     choices = paste0("PC", 1:10),
                     selected = "PC3"
-                  ),
-                  sliderInput("pca_3d_point_size", "Point Size (3D):",
-                    min = 0.5, max = 3, value = 1.5, step = 0.1
                   )
                 ),
-                hr(),
-                h6("B&W Plot Customization:"),
                 conditionalPanel(
                   condition = "input.pca_plot_type == 'bw'",
+                  hr(),
+                  h6("B&W Plot Customization:"),
                   checkboxInput("pca_bw_auto_shapes", "Auto Assign Shapes", value = TRUE),
                   conditionalPanel(
                     condition = "!input.pca_bw_auto_shapes",
                     uiOutput("pca_bw_shape_ui")
-                  ),
-                  sliderInput("pca_bw_point_size", "Point Size:",
-                    min = 2, max = 8, value = 5, step = 0.5
                   )
                 ),
                 hr(),
@@ -760,16 +790,6 @@ ui <- page_sidebar(
                     selected = "default"),
                   helpText(class = "text-muted small", style = "margin-top:-8px;", "Controls how far box whiskers extend."),
                   hr(),
-                  tags$p(class = "section-header", icon("sliders-h", class = "me-1"), "Overlays"),
-                  checkboxInput("cs_show_points", "Show Individual Points", value = TRUE),
-                  conditionalPanel(
-                    condition = "input.cs_show_points == true",
-                    sliderInput("cs_jitter_width", "Jitter Width:", min = 0, max = 0.5, value = 0.2, step = 0.02),
-                    sliderInput("cs_jitter_alpha", "Jitter Alpha:", min = 0.1, max = 1, value = 0.6, step = 0.05),
-                    sliderInput("cs_point_size", "Point Size:", min = 0.5, max = 6, value = 2, step = 0.25)
-                  ),
-                  checkboxInput("cs_show_mean", "Show Group Means", value = FALSE),
-                  hr(),
                   tags$p(class = "section-header", icon("star", class = "me-1"), "Significance"),
                   checkboxInput("cs_show_significance", "Show Significance Bars", value = FALSE),
                   conditionalPanel(
@@ -784,6 +804,16 @@ ui <- page_sidebar(
                     sliderInput("cs_sig_step", "Bracket Spacing:", min = 0.02, max = 0.15, value = 0.05, step = 0.01),
                     sliderInput("cs_sig_tip_length", "Bracket Tip Length:", min = 0.005, max = 0.05, value = 0.02, step = 0.005)
                   ),
+                  hr(),
+                  tags$p(class = "section-header", icon("sliders-h", class = "me-1"), "Overlays"),
+                  checkboxInput("cs_show_points", "Show Individual Points", value = TRUE),
+                  conditionalPanel(
+                    condition = "input.cs_show_points == true",
+                    sliderInput("cs_jitter_width", "Jitter Width:", min = 0, max = 0.5, value = 0.2, step = 0.02),
+                    sliderInput("cs_jitter_alpha", "Jitter Alpha:", min = 0.1, max = 1, value = 0.6, step = 0.05),
+                    sliderInput("cs_point_size", "Point Size:", min = 0.5, max = 6, value = 2, step = 0.25)
+                  ),
+                  checkboxInput("cs_show_mean", "Show Group Means", value = FALSE),
                   hr(),
                   tags$p(class = "section-header", icon("paint-brush", class = "me-1"), "Aesthetics"),
                   sliderInput("cs_fill_alpha", "Fill Transparency:", min = 0, max = 1, value = 0.7, step = 0.05),
@@ -803,6 +833,18 @@ ui <- page_sidebar(
                     selected = "classic"),
                   checkboxInput("cs_coord_flip", "Flip Coordinates", value = FALSE),
                   checkboxInput("cs_show_legend", "Show Legend", value = FALSE),
+                  hr(),
+                  tags$p(class = "section-header", icon("sliders-h", class = "me-1"), "Axis Range & Scale"),
+                  checkboxInput("cs_flip_y", "Flip Y-axis", value = FALSE),
+                  checkboxInput("cs_custom_range", "Custom Y-axis Range", value = FALSE),
+                  conditionalPanel(
+                    condition = "input.cs_custom_range == true",
+                    fluidRow(
+                      column(6, numericInput("cs_y_min", "Y Min:", value = 0, step = 1)),
+                      column(6, numericInput("cs_y_max", "Y Max:", value = 100, step = 1))
+                    )
+                  ),
+                  checkboxInput("cs_dual_axis", "Show Dual Axis (Right Side)", value = FALSE),
                   hr(),
                   tags$p(class = "section-header", icon("font", class = "me-1"), "Font Sizes"),
                   sliderInput("cs_title_size", "Title Size:", min = 10, max = 24, value = 14, step = 1),
@@ -832,6 +874,21 @@ ui <- page_sidebar(
                   ),
                   colourpicker::colourInput("allo_line_color", "Regression Line:", value = "#2c3e50"),
                   hr(),
+                  tags$p(class = "section-header", icon("sliders-h", class = "me-1"), "Axis Range & Scale"),
+                  checkboxInput("allo_custom_range", "Custom Axis Range", value = FALSE),
+                  conditionalPanel(
+                    condition = "input.allo_custom_range == true",
+                    fluidRow(
+                      column(6, numericInput("allo_x_min", "X Min:", value = 0, step = 0.1)),
+                      column(6, numericInput("allo_x_max", "X Max:", value = 10, step = 0.1))
+                    ),
+                    fluidRow(
+                      column(6, numericInput("allo_y_min", "Y Min:", value = 0, step = 0.01)),
+                      column(6, numericInput("allo_y_max", "Y Max:", value = 0.1, step = 0.01))
+                    )
+                  ),
+                  checkboxInput("allo_dual_axis", "Show Dual Axis (Right Y)", value = FALSE),
+                  hr(),
                   tags$p(class = "section-header", icon("font", class = "me-1"), "Font Sizes"),
                   sliderInput("allo_title_size", "Title Size:", min = 10, max = 24, value = 14, step = 1),
                   sliderInput("allo_axis_title_size", "Axis Title Size:", min = 8, max = 18, value = 12, step = 1),
@@ -847,6 +904,22 @@ ui <- page_sidebar(
                   sliderInput("vector_scale", "Vector Scale:", min = 1, max = 20, value = 10, step = 1),
                   colourpicker::colourInput("vector_color", "Vector Color:", value = "#b44d3f"),
                   sliderInput("vector_width", "Vector Width:", min = 0.5, max = 3, value = 1, step = 0.1),
+                  hr(),
+                  tags$p(class = "section-header", icon("sliders-h", class = "me-1"), "Axis Range & Scale"),
+                  checkboxInput("vector_flip_x", "Flip X-axis", value = FALSE),
+                  checkboxInput("vector_flip_y", "Flip Y-axis", value = FALSE),
+                  checkboxInput("vector_custom_range", "Custom Axis Range", value = FALSE),
+                  conditionalPanel(
+                    condition = "input.vector_custom_range == true",
+                    fluidRow(
+                      column(6, numericInput("vector_x_min", "X Min:", value = 0, step = 0.01)),
+                      column(6, numericInput("vector_x_max", "X Max:", value = 0.1, step = 0.01))
+                    ),
+                    fluidRow(
+                      column(6, numericInput("vector_y_min", "Y Min:", value = 0, step = 0.01)),
+                      column(6, numericInput("vector_y_max", "Y Max:", value = 0.1, step = 0.01))
+                    )
+                  ),
                   hr(),
                   h6("Font Sizes:"),
                   sliderInput("vector_title_size", "Title Size:", min = 10, max = 24, value = 14, step = 1),
@@ -917,6 +990,18 @@ ui <- page_sidebar(
                   checkboxInput("disp_coord_flip", "Flip Coordinates", value = FALSE),
                   checkboxInput("disp_show_legend", "Show Legend", value = FALSE),
                   hr(),
+                  tags$p(class = "section-header", icon("sliders-h", class = "me-1"), "Axis Range & Scale"),
+                  checkboxInput("disp_flip_y", "Flip Y-axis", value = FALSE),
+                  checkboxInput("disp_custom_range", "Custom Y-axis Range", value = FALSE),
+                  conditionalPanel(
+                    condition = "input.disp_custom_range == true",
+                    fluidRow(
+                      column(6, numericInput("disp_y_min", "Y Min:", value = 0, step = 0.001)),
+                      column(6, numericInput("disp_y_max", "Y Max:", value = 0.5, step = 0.001))
+                    )
+                  ),
+                  checkboxInput("disp_dual_axis", "Show Dual Axis (Right Side)", value = FALSE),
+                  hr(),
                   tags$p(class = "section-header", icon("font", class = "me-1"), "Font Sizes"),
                   sliderInput("disp_title_size", "Title Size:", min = 10, max = 24, value = 14, step = 1),
                   sliderInput("disp_axis_title_size", "Axis Title Size:", min = 8, max = 18, value = 12, step = 1),
@@ -943,6 +1028,16 @@ ui <- page_sidebar(
                     choices = c("Classic" = "classic", "Minimal" = "minimal", "BW" = "bw", "Light" = "light"),
                     selected = "classic"),
                   checkboxInput("eigen_coord_flip", "Flip Coordinates", value = FALSE),
+                  hr(),
+                  tags$p(class = "section-header", icon("sliders-h", class = "me-1"), "Axis Range & Scale"),
+                  checkboxInput("eigen_custom_range", "Custom Y-axis Range", value = FALSE),
+                  conditionalPanel(
+                    condition = "input.eigen_custom_range == true",
+                    fluidRow(
+                      column(6, numericInput("eigen_y_min", "Y Min:", value = 0, step = 1)),
+                      column(6, numericInput("eigen_y_max", "Y Max:", value = 100, step = 1))
+                    )
+                  ),
                   hr(),
                   tags$p(class = "section-header", icon("font", class = "me-1"), "Font Sizes"),
                   sliderInput("eigen_title_size", "Title Size:", min = 10, max = 24, value = 14, step = 1),
@@ -1106,9 +1201,6 @@ ui <- page_sidebar(
                       selected = "xy"
                     )
                   ),
-                  sliderInput("deform_point_size", "Data Point Size:",
-                    min = 0.5, max = 5, value = 1.5, step = 0.1
-                  ),
                   hr(),
                   tags$p(class = "section-header", icon("eye", class = "me-1"), "Display Options"),
                   conditionalPanel(
@@ -1116,8 +1208,11 @@ ui <- page_sidebar(
                     checkboxInput("deform_3d_show_gridlines", "Show 3D Gridlines", value = TRUE),
                     checkboxInput("deform_3d_show_axes", "Show 3D Axes", value = TRUE)
                   ),
+                  checkboxInput("deform_show_plus", "Show + PC Shape", value = TRUE),
+                  checkboxInput("deform_show_minus", "Show - PC Shape", value = TRUE),
                   checkboxInput("deform_show_wireframe", "Show Wireframe", value = TRUE),
                   checkboxInput("deform_show_mean", "Show Mean Shape", value = TRUE),
+                  checkboxInput("deform_show_points", "Show Data Points", value = TRUE),
                   checkboxInput("deform_show_landmarks", "Show Landmark Numbers", value = FALSE),
                   conditionalPanel(
                     condition = "input.deform_show_landmarks == true",
@@ -1126,6 +1221,12 @@ ui <- page_sidebar(
                     ),
                     colourpicker::colourInput("deform_landmark_color", "Landmark Number Color:",
                       value = "#000000"
+                    )
+                  ),
+                  conditionalPanel(
+                    condition = "input.deform_show_points == true",
+                    sliderInput("deform_point_size", "Data Point Size:",
+                      min = 0.5, max = 5, value = 1.5, step = 0.1
                     )
                   ),
                   hr(),
@@ -1262,6 +1363,7 @@ ui <- page_sidebar(
                   tags$p(class = "section-header", icon("eye", class = "me-1"), "Display Options"),
                   checkboxInput("wire_show_wireframe", "Show Wireframe", value = TRUE),
                   checkboxInput("show_average", "Show Mean Shape", value = FALSE),
+                  checkboxInput("wire_show_points", "Show Data Points", value = TRUE),
                   checkboxInput("wire_show_landmarks", "Show Landmark Numbers", value = FALSE),
                   conditionalPanel(
                     condition = "input.wire_show_landmarks == true",
@@ -1271,6 +1373,16 @@ ui <- page_sidebar(
                     colourpicker::colourInput("wire_landmark_color", "Landmark Number Color:",
                       value = "#000000"
                     )
+                  ),
+                  conditionalPanel(
+                    condition = "input.wire_show_points == true",
+                    sliderInput("wire_point_size", "Data Point Size:",
+                      min = 0.5, max = 5, value = 1.5, step = 0.1
+                    )
+                  ),
+                  conditionalPanel(
+                    condition = "input.wire_show_points == false",
+                    checkboxInput("wire_show_arrows", "Show Displacement Arrows", value = TRUE)
                   ),
                   hr(),
                   h6("Colors:"),
@@ -2557,16 +2669,32 @@ server <- function(input, output, session) {
       
       # Set background color
       par(bg = input$plot_bg)
-      
+
+      # Custom axis ranges for 3D
+      xlim_3d <- if (isTRUE(input$pca_custom_range) &&
+                     !is.null(input$pca_x_min) && !is.na(input$pca_x_min) &&
+                     !is.null(input$pca_x_max) && !is.na(input$pca_x_max) &&
+                     input$pca_x_min < input$pca_x_max) c(input$pca_x_min, input$pca_x_max) else NULL
+      ylim_3d <- if (isTRUE(input$pca_custom_range) &&
+                     !is.null(input$pca_y_min) && !is.na(input$pca_y_min) &&
+                     !is.null(input$pca_y_max) && !is.na(input$pca_y_max) &&
+                     input$pca_y_min < input$pca_y_max) c(input$pca_y_min, input$pca_y_max) else NULL
+      zlim_3d <- if (isTRUE(input$pca_custom_range) &&
+                     !is.null(input$pca_z_min) && !is.na(input$pca_z_min) &&
+                     !is.null(input$pca_z_max) && !is.na(input$pca_z_max) &&
+                     input$pca_z_min < input$pca_z_max) c(input$pca_z_min, input$pca_z_max) else NULL
+
       s3d <- scatterplot3d(plot_data[[comp_x]], plot_data[[comp_y]], plot_data[[comp_z]],
-                   color = group_cols, pch = 19, cex.symbols = input$pca_3d_point_size,
+                   color = group_cols, pch = 19,
+                   cex.symbols = if (!is.null(input$pca_point_size)) input$pca_point_size else 3,
                    xlab = if (isTRUE(input$pca_show_axis)) x_label else "",
                    ylab = if (isTRUE(input$pca_show_axis)) y_label else "",
                    zlab = if (isTRUE(input$pca_show_axis)) z_label else "",
                    main = input$pca_title,
                    grid = isTRUE(input$pca_show_grid),
                    box = isTRUE(input$pca_show_axis),
-                   axis = isTRUE(input$pca_show_axis))
+                   axis = isTRUE(input$pca_show_axis),
+                   xlim = xlim_3d, ylim = ylim_3d, zlim = zlim_3d)
       
       # Add data point labels if enabled
       if (isTRUE(input$pca_show_labels)) {
@@ -2607,10 +2735,7 @@ server <- function(input, output, session) {
 
     if (input$pca_plot_type == "color") {
       # Colored plot - base plot without ellipse
-      p <- ggplot(plot_data, aes_string(
-        x = comp_x, y = comp_y,
-        color = "Group", fill = "Group"
-      )) +
+      p <- ggplot(plot_data, aes(x = .data[[comp_x]], y = .data[[comp_y]], color = Group, fill = Group)) +
         geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
         geom_vline(xintercept = 0, linetype = "dashed", color = "grey50")
       
@@ -2625,12 +2750,15 @@ server <- function(input, output, session) {
       ellipse_level <- if (!is.null(input$pca_ellipse_level) && input$pca_spread_customize) input$pca_ellipse_level else input$confidence
       
       if (spread_type == "ellipse") {
-        if (spread_fill && spread_outline) {
-          p <- p + stat_ellipse(type = "norm", alpha = spread_alpha, level = ellipse_level, linewidth = spread_lwd, geom = "polygon")
-        } else if (spread_fill) {
-          p <- p + stat_ellipse(type = "norm", alpha = spread_alpha, level = ellipse_level, linewidth = 0, geom = "polygon")
-        } else if (spread_outline) {
-          p <- p + stat_ellipse(type = "norm", level = ellipse_level, linewidth = spread_lwd, geom = "path")
+        ellipse_data <- plot_data[plot_data$Group %in% names(which(table(plot_data$Group) >= 3)), ]
+        if (nrow(ellipse_data) > 0) {
+          if (spread_fill && spread_outline) {
+            p <- p + stat_ellipse(data = ellipse_data, type = "norm", alpha = spread_alpha, level = ellipse_level, linewidth = spread_lwd, geom = "polygon")
+          } else if (spread_fill) {
+            p <- p + stat_ellipse(data = ellipse_data, type = "norm", alpha = spread_alpha, level = ellipse_level, linewidth = 0, geom = "polygon")
+          } else if (spread_outline) {
+            p <- p + stat_ellipse(data = ellipse_data, type = "norm", level = ellipse_level, linewidth = spread_lwd, geom = "path")
+          }
         }
       } else if (spread_type == "hull") {
         # Convex hulls
@@ -2638,34 +2766,39 @@ server <- function(input, output, session) {
           df[chull(df[[comp_x]], df[[comp_y]]), ]
         }))
         if (spread_fill && spread_outline) {
-          p <- p + geom_polygon(data = hull_data, aes_string(x = comp_x, y = comp_y, fill = "Group", color = "Group"),
+          p <- p + geom_polygon(data = hull_data, aes(x = .data[[comp_x]], y = .data[[comp_y]], fill = Group, color = Group),
                                alpha = spread_alpha, linewidth = spread_lwd)
         } else if (spread_fill) {
-          p <- p + geom_polygon(data = hull_data, aes_string(x = comp_x, y = comp_y, fill = "Group"),
+          p <- p + geom_polygon(data = hull_data, aes(x = .data[[comp_x]], y = .data[[comp_y]], fill = Group),
                                alpha = spread_alpha, color = NA)
         } else if (spread_outline) {
-          p <- p + geom_polygon(data = hull_data, aes_string(x = comp_x, y = comp_y, color = "Group"),
+          p <- p + geom_polygon(data = hull_data, aes(x = .data[[comp_x]], y = .data[[comp_y]], color = Group),
                                fill = NA, linewidth = spread_lwd)
         }
       } else if (spread_type == "density") {
         # Density contour lines
         density_bins <- if (!is.null(input$pca_density_bins) && input$pca_spread_customize) input$pca_density_bins else 5
         if (spread_fill && spread_outline) {
-          p <- p + geom_density_2d_filled(aes_string(x = comp_x, y = comp_y), alpha = spread_alpha, bins = density_bins, show.legend = FALSE) +
-                   geom_density_2d(aes_string(x = comp_x, y = comp_y, color = "Group"), linewidth = spread_lwd, bins = density_bins)
+          p <- p + geom_density_2d_filled(aes(x = .data[[comp_x]], y = .data[[comp_y]]), alpha = spread_alpha, bins = density_bins, show.legend = FALSE) +
+                   geom_density_2d(aes(x = .data[[comp_x]], y = .data[[comp_y]], color = Group), linewidth = spread_lwd, bins = density_bins)
         } else if (spread_fill) {
-          p <- p + geom_density_2d_filled(aes_string(x = comp_x, y = comp_y), alpha = spread_alpha, bins = density_bins, show.legend = FALSE)
+          p <- p + geom_density_2d_filled(aes(x = .data[[comp_x]], y = .data[[comp_y]]), alpha = spread_alpha, bins = density_bins, show.legend = FALSE)
         } else if (spread_outline) {
-          p <- p + geom_density_2d(aes_string(x = comp_x, y = comp_y, color = "Group"), linewidth = spread_lwd, bins = density_bins)
+          p <- p + geom_density_2d(aes(x = .data[[comp_x]], y = .data[[comp_y]], color = Group), linewidth = spread_lwd, bins = density_bins)
         }
       }
       # spread_type == "none" - no visualization added
       
-      p <- p + geom_point(size = 4, shape = 21, stroke = 1.3, alpha = 0.92) +
-        morphostat_plot_theme(
-          base_size = 13,
+      pt_size   <- if (!is.null(input$pca_point_size))   input$pca_point_size   else 3
+      pt_stroke <- if (!is.null(input$pca_point_stroke)) input$pca_point_stroke else 1.5
+      p <- p + geom_point(size = pt_size, shape = 21, stroke = pt_stroke) +
+        theme_classic(base_size = 13) +
+        theme(
           legend.position = "right",
-          panel_fill = input$plot_bg
+          legend.title = element_blank(),
+          plot.title = element_text(hjust = 0.5, face = "bold"),
+          plot.background = element_rect(fill = input$plot_bg, color = NA),
+          panel.background = element_rect(fill = input$plot_bg)
         ) +
         labs(x = x_label, y = y_label, title = input$pca_title)
 
@@ -2689,6 +2822,9 @@ server <- function(input, output, session) {
           axis.line = element_blank()
         )
       }
+
+      # Axis scale: range, intervals, and dual-axis
+      p <- apply_pca_axis_scales(p)
 
       # Add labels if requested
       if (input$pca_show_labels) {
@@ -2728,12 +2864,10 @@ server <- function(input, output, session) {
         if (shape_val %in% c(21, 22, 23, 24, 25)) "black" else "white"
       })
       
-      point_size <- if (!is.null(input$pca_bw_point_size)) input$pca_bw_point_size else 5
+      point_size <- if (!is.null(input$pca_point_size))   input$pca_point_size   else 3
+      pt_stroke  <- if (!is.null(input$pca_point_stroke)) input$pca_point_stroke else 1.5
       
-      p <- ggplot(plot_data, aes_string(
-        x = comp_x, y = comp_y,
-        shape = "Group", fill = "Group"
-      )) +
+      p <- ggplot(plot_data, aes(x = .data[[comp_x]], y = .data[[comp_y]], shape = Group, fill = Group)) +
         geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
         geom_vline(xintercept = 0, linetype = "dashed", color = "grey50")
       
@@ -2743,26 +2877,30 @@ server <- function(input, output, session) {
       spread_lwd <- if (!is.null(input$pca_spread_line_width) && input$pca_spread_customize) input$pca_spread_line_width else 1.5
       ellipse_level <- if (!is.null(input$pca_ellipse_level) && input$pca_spread_customize) input$pca_ellipse_level else input$confidence
       
-      if (spread_type == "ellipse" && spread_outline) {
-        p <- p + stat_ellipse(level = ellipse_level, color = "black", linewidth = spread_lwd)
+      ellipse_data_bw <- plot_data[plot_data$Group %in% names(which(table(plot_data$Group) >= 3)), ]
+      if (spread_type == "ellipse" && spread_outline && nrow(ellipse_data_bw) > 0) {
+        p <- p + stat_ellipse(data = ellipse_data_bw, level = ellipse_level, color = "black", linewidth = spread_lwd)
       } else if (spread_type == "hull" && spread_outline) {
         hull_data <- do.call(rbind, lapply(split(plot_data, plot_data$Group), function(df) {
           df[chull(df[[comp_x]], df[[comp_y]]), ]
         }))
-        p <- p + geom_polygon(data = hull_data, aes_string(x = comp_x, y = comp_y, group = "Group"),
+        p <- p + geom_polygon(data = hull_data, aes(x = .data[[comp_x]], y = .data[[comp_y]], group = Group),
                              fill = NA, color = "black", linewidth = spread_lwd)
       } else if (spread_type == "density" && spread_outline) {
         density_bins <- if (!is.null(input$pca_density_bins) && input$pca_spread_customize) input$pca_density_bins else 5
-        p <- p + geom_density_2d(aes_string(x = comp_x, y = comp_y, group = "Group"), color = "black", linewidth = spread_lwd, bins = density_bins)
+        p <- p + geom_density_2d(aes(x = .data[[comp_x]], y = .data[[comp_y]], group = Group), color = "black", linewidth = spread_lwd, bins = density_bins)
       }
       
-      p <- p + geom_point(size = point_size, stroke = 1.5, color = "black") +
+      p <- p + geom_point(size = point_size, stroke = pt_stroke, color = "black") +
         scale_shape_manual(values = shape_values) +
         scale_fill_manual(values = fill_values) +
-        morphostat_plot_theme(
-          base_size = 13,
+        theme_classic(base_size = 13) +
+        theme(
           legend.position = "right",
-          panel_fill = input$plot_bg
+          legend.title = element_blank(),
+          plot.title = element_text(hjust = 0.5, face = "bold"),
+          plot.background = element_rect(fill = input$plot_bg, color = NA),
+          panel.background = element_rect(fill = input$plot_bg)
         ) +
         labs(x = x_label, y = y_label, title = input$pca_title)
 
@@ -2786,6 +2924,9 @@ server <- function(input, output, session) {
           axis.line = element_blank()
         )
       }
+
+      # Axis scale: range, intervals, and dual-axis
+      p <- apply_pca_axis_scales(p)
 
       # Add labels if requested
       if (input$pca_show_labels) {
@@ -3562,15 +3703,25 @@ server <- function(input, output, session) {
     par(bg = input$plot_bg)
     plotRefToTarget(ref_2D, shape_2D,
       links = show_wireframe_links,
-      method = "vector",
+      method = if (!isTRUE(input$wire_show_points) && isTRUE(input$wire_show_arrows)) "vector" else "points",
       mag = input$wire_mag,
       gridPars = gridPar(
-        pt.bg = input$point_color,
-        pt.size = 1.5,
-        link.col = input$wire_color_minus,
-        link.lwd = input$wire_thickness
+        pt.size = 0,
+        link.col = "transparent",
+        tar.pt.bg = input$point_color,
+        tar.pt.size = if (isTRUE(input$wire_show_points)) (if (!is.null(input$wire_point_size)) input$wire_point_size else 1.5) else 0,
+        tar.link.col = input$wire_color_minus,
+        tar.link.lwd = input$wire_thickness
       )
     )
+    # Draw wireframe manually in vector mode (geomorph uses link.col not tar.link.col for vectors)
+    if (!isTRUE(input$wire_show_points) && isTRUE(input$wire_show_arrows) &&
+        isTRUE(input$wire_show_wireframe) && !is.null(rv$links) && nrow(rv$links) > 0) {
+      for (i in seq_len(nrow(rv$links))) {
+        lines(shape_2D[rv$links[i, ], 1], shape_2D[rv$links[i, ], 2],
+              col = input$wire_color_minus, lwd = input$wire_thickness)
+      }
+    }
     if (isTRUE(input$show_average) && isTRUE(input$wire_show_wireframe)) {
       for (i in seq_len(nrow(rv$links))) {
         lines(ref_2D[rv$links[i, ], 1], ref_2D[rv$links[i, ], 2], col = input$wire_color_avg, lwd = input$wire_thickness)
@@ -3618,15 +3769,25 @@ server <- function(input, output, session) {
     par(bg = input$plot_bg)
     plotRefToTarget(ref_2D, shape_2D,
       links = show_wireframe_links,
-      method = "vector",
+      method = if (!isTRUE(input$wire_show_points) && isTRUE(input$wire_show_arrows)) "vector" else "points",
       mag = input$wire_mag,
       gridPars = gridPar(
-        pt.bg = input$point_color,
-        pt.size = 1.5,
-        link.col = input$wire_color_plus,
-        link.lwd = input$wire_thickness
+        pt.size = 0,
+        link.col = "transparent",
+        tar.pt.bg = input$point_color,
+        tar.pt.size = if (isTRUE(input$wire_show_points)) (if (!is.null(input$wire_point_size)) input$wire_point_size else 1.5) else 0,
+        tar.link.col = input$wire_color_plus,
+        tar.link.lwd = input$wire_thickness
       )
     )
+    # Draw wireframe manually in vector mode
+    if (!isTRUE(input$wire_show_points) && isTRUE(input$wire_show_arrows) &&
+        isTRUE(input$wire_show_wireframe) && !is.null(rv$links) && nrow(rv$links) > 0) {
+      for (i in seq_len(nrow(rv$links))) {
+        lines(shape_2D[rv$links[i, ], 1], shape_2D[rv$links[i, ], 2],
+              col = input$wire_color_plus, lwd = input$wire_thickness)
+      }
+    }
     if (isTRUE(input$show_average) && isTRUE(input$wire_show_wireframe)) {
       for (i in seq_len(nrow(rv$links))) {
         lines(ref_2D[rv$links[i, ], 1], ref_2D[rv$links[i, ], 2], col = input$wire_color_avg, lwd = input$wire_thickness)
@@ -3675,15 +3836,25 @@ server <- function(input, output, session) {
     par(bg = input$plot_bg)
     plotRefToTarget(ref_2D, shape_2D,
       links = show_wireframe_links,
-      method = "vector",
+      method = if (!isTRUE(input$wire_show_points) && isTRUE(input$wire_show_arrows)) "vector" else "points",
       mag = input$wire_mag,
       gridPars = gridPar(
-        pt.bg = input$point_color,
-        pt.size = 1.5,
-        link.col = input$wire_color_minus,
-        link.lwd = input$wire_thickness
+        pt.size = 0,
+        link.col = "transparent",
+        tar.pt.bg = input$point_color,
+        tar.pt.size = if (isTRUE(input$wire_show_points)) (if (!is.null(input$wire_point_size)) input$wire_point_size else 1.5) else 0,
+        tar.link.col = input$wire_color_minus,
+        tar.link.lwd = input$wire_thickness
       )
     )
+    # Draw wireframe manually in vector mode
+    if (!isTRUE(input$wire_show_points) && isTRUE(input$wire_show_arrows) &&
+        isTRUE(input$wire_show_wireframe) && !is.null(rv$links) && nrow(rv$links) > 0) {
+      for (i in seq_len(nrow(rv$links))) {
+        lines(shape_2D[rv$links[i, ], 1], shape_2D[rv$links[i, ], 2],
+              col = input$wire_color_minus, lwd = input$wire_thickness)
+      }
+    }
     if (isTRUE(input$show_average) && isTRUE(input$wire_show_wireframe)) {
       for (i in seq_len(nrow(rv$links))) {
         lines(ref_2D[rv$links[i, ], 1], ref_2D[rv$links[i, ], 2], col = input$wire_color_avg, lwd = input$wire_thickness)
@@ -3731,15 +3902,25 @@ server <- function(input, output, session) {
     par(bg = input$plot_bg)
     plotRefToTarget(ref_2D, shape_2D,
       links = show_wireframe_links,
-      method = "vector",
+      method = if (!isTRUE(input$wire_show_points) && isTRUE(input$wire_show_arrows)) "vector" else "points",
       mag = input$wire_mag,
       gridPars = gridPar(
-        pt.bg = input$point_color,
-        pt.size = 1.5,
-        link.col = input$wire_color_plus,
-        link.lwd = input$wire_thickness
+        pt.size = 0,
+        link.col = "transparent",
+        tar.pt.bg = input$point_color,
+        tar.pt.size = if (isTRUE(input$wire_show_points)) (if (!is.null(input$wire_point_size)) input$wire_point_size else 1.5) else 0,
+        tar.link.col = input$wire_color_plus,
+        tar.link.lwd = input$wire_thickness
       )
     )
+    # Draw wireframe manually in vector mode
+    if (!isTRUE(input$wire_show_points) && isTRUE(input$wire_show_arrows) &&
+        isTRUE(input$wire_show_wireframe) && !is.null(rv$links) && nrow(rv$links) > 0) {
+      for (i in seq_len(nrow(rv$links))) {
+        lines(shape_2D[rv$links[i, ], 1], shape_2D[rv$links[i, ], 2],
+              col = input$wire_color_plus, lwd = input$wire_thickness)
+      }
+    }
     if (isTRUE(input$show_average) && isTRUE(input$wire_show_wireframe)) {
       for (i in seq_len(nrow(rv$links))) {
         lines(ref_2D[rv$links[i, ], 1], ref_2D[rv$links[i, ], 2], col = input$wire_color_avg, lwd = input$wire_thickness)
@@ -3788,15 +3969,25 @@ server <- function(input, output, session) {
     par(bg = input$plot_bg)
     plotRefToTarget(ref_2D, shape_2D,
       links = show_wireframe_links,
-      method = "vector",
+      method = if (!isTRUE(input$wire_show_points) && isTRUE(input$wire_show_arrows)) "vector" else "points",
       mag = input$wire_mag,
       gridPars = gridPar(
-        pt.bg = input$point_color,
-        pt.size = 1.5,
-        link.col = input$wire_color_minus,
-        link.lwd = input$wire_thickness
+        pt.size = 0,
+        link.col = "transparent",
+        tar.pt.bg = input$point_color,
+        tar.pt.size = if (isTRUE(input$wire_show_points)) (if (!is.null(input$wire_point_size)) input$wire_point_size else 1.5) else 0,
+        tar.link.col = input$wire_color_minus,
+        tar.link.lwd = input$wire_thickness
       )
     )
+    # Draw wireframe manually in vector mode
+    if (!isTRUE(input$wire_show_points) && isTRUE(input$wire_show_arrows) &&
+        isTRUE(input$wire_show_wireframe) && !is.null(rv$links) && nrow(rv$links) > 0) {
+      for (i in seq_len(nrow(rv$links))) {
+        lines(shape_2D[rv$links[i, ], 1], shape_2D[rv$links[i, ], 2],
+              col = input$wire_color_minus, lwd = input$wire_thickness)
+      }
+    }
     if (isTRUE(input$show_average) && isTRUE(input$wire_show_wireframe)) {
       for (i in seq_len(nrow(rv$links))) {
         lines(ref_2D[rv$links[i, ], 1], ref_2D[rv$links[i, ], 2], col = input$wire_color_avg, lwd = input$wire_thickness)
@@ -3844,15 +4035,25 @@ server <- function(input, output, session) {
     par(bg = input$plot_bg)
     plotRefToTarget(ref_2D, shape_2D,
       links = show_wireframe_links,
-      method = "vector",
+      method = if (!isTRUE(input$wire_show_points) && isTRUE(input$wire_show_arrows)) "vector" else "points",
       mag = input$wire_mag,
       gridPars = gridPar(
-        pt.bg = input$point_color,
-        pt.size = 1.5,
-        link.col = input$wire_color_plus,
-        link.lwd = input$wire_thickness
+        pt.size = 0,
+        link.col = "transparent",
+        tar.pt.bg = input$point_color,
+        tar.pt.size = if (isTRUE(input$wire_show_points)) (if (!is.null(input$wire_point_size)) input$wire_point_size else 1.5) else 0,
+        tar.link.col = input$wire_color_plus,
+        tar.link.lwd = input$wire_thickness
       )
     )
+    # Draw wireframe manually in vector mode
+    if (!isTRUE(input$wire_show_points) && isTRUE(input$wire_show_arrows) &&
+        isTRUE(input$wire_show_wireframe) && !is.null(rv$links) && nrow(rv$links) > 0) {
+      for (i in seq_len(nrow(rv$links))) {
+        lines(shape_2D[rv$links[i, ], 1], shape_2D[rv$links[i, ], 2],
+              col = input$wire_color_plus, lwd = input$wire_thickness)
+      }
+    }
     if (isTRUE(input$show_average) && isTRUE(input$wire_show_wireframe)) {
       for (i in seq_len(nrow(rv$links))) {
         lines(ref_2D[rv$links[i, ], 1], ref_2D[rv$links[i, ], 2], col = input$wire_color_avg, lwd = input$wire_thickness)
@@ -3901,15 +4102,25 @@ server <- function(input, output, session) {
     par(bg = input$plot_bg)
     plotRefToTarget(ref_shape, minus_shape,
       links = show_wireframe_links,
-      method = "vector",
+      method = if (!isTRUE(input$wire_show_points) && isTRUE(input$wire_show_arrows)) "vector" else "points",
       mag = input$wire_mag,
       gridPars = gridPar(
-        pt.bg = input$point_color,
-        pt.size = 1.5,
-        link.col = input$wire_color_minus,
-        link.lwd = input$wire_thickness
+        pt.size = 0,
+        link.col = "transparent",
+        tar.pt.bg = input$point_color,
+        tar.pt.size = if (isTRUE(input$wire_show_points)) (if (!is.null(input$wire_point_size)) input$wire_point_size else 1.5) else 0,
+        tar.link.col = input$wire_color_minus,
+        tar.link.lwd = input$wire_thickness
       )
     )
+    # Draw wireframe manually in vector mode
+    if (!isTRUE(input$wire_show_points) && isTRUE(input$wire_show_arrows) &&
+        isTRUE(input$wire_show_wireframe) && !is.null(rv$links) && nrow(rv$links) > 0) {
+      for (i in seq_len(nrow(rv$links))) {
+        lines(minus_shape[rv$links[i, ], 1], minus_shape[rv$links[i, ], 2],
+              col = input$wire_color_minus, lwd = input$wire_thickness)
+      }
+    }
     if (isTRUE(input$show_average) && isTRUE(input$wire_show_wireframe)) {
       for (i in seq_len(nrow(rv$links))) {
         lines(ref_shape[rv$links[i, ], 1], ref_shape[rv$links[i, ], 2], col = input$wire_color_avg, lwd = input$wire_thickness)
@@ -3957,15 +4168,25 @@ server <- function(input, output, session) {
     par(bg = input$plot_bg)
     plotRefToTarget(ref_shape, plus_shape,
       links = show_wireframe_links,
-      method = "vector",
+      method = if (!isTRUE(input$wire_show_points) && isTRUE(input$wire_show_arrows)) "vector" else "points",
       mag = input$wire_mag,
       gridPars = gridPar(
-        pt.bg = input$point_color,
-        pt.size = 1.5,
-        link.col = input$wire_color_plus,
-        link.lwd = input$wire_thickness
+        pt.size = 0,
+        link.col = "transparent",
+        tar.pt.bg = input$point_color,
+        tar.pt.size = if (isTRUE(input$wire_show_points)) (if (!is.null(input$wire_point_size)) input$wire_point_size else 1.5) else 0,
+        tar.link.col = input$wire_color_plus,
+        tar.link.lwd = input$wire_thickness
       )
     )
+    # Draw wireframe manually in vector mode
+    if (!isTRUE(input$wire_show_points) && isTRUE(input$wire_show_arrows) &&
+        isTRUE(input$wire_show_wireframe) && !is.null(rv$links) && nrow(rv$links) > 0) {
+      for (i in seq_len(nrow(rv$links))) {
+        lines(plus_shape[rv$links[i, ], 1], plus_shape[rv$links[i, ], 2],
+              col = input$wire_color_plus, lwd = input$wire_thickness)
+      }
+    }
     if (isTRUE(input$show_average) && isTRUE(input$wire_show_wireframe)) {
       for (i in seq_len(nrow(rv$links))) {
         lines(ref_shape[rv$links[i, ], 1], ref_shape[rv$links[i, ], 2], col = input$wire_color_avg, lwd = input$wire_thickness)
@@ -4082,7 +4303,7 @@ server <- function(input, output, session) {
       mag = input$wire_mag,
       gridPars = gridPar(
         pt.bg = input$point_color,
-        pt.size = 1.5,
+        pt.size = if (isTRUE(input$wire_show_points)) (if (!is.null(input$wire_point_size)) input$wire_point_size else 1.5) else 0,
         link.col = input$wire_color_minus,
         link.lwd = input$wire_thickness,
         tar.pt.bg = input$wire_color_minus
@@ -4129,7 +4350,7 @@ server <- function(input, output, session) {
       mag = input$wire_mag,
       gridPars = gridPar(
         pt.bg = input$point_color,
-        pt.size = 1.5,
+        pt.size = if (isTRUE(input$wire_show_points)) (if (!is.null(input$wire_point_size)) input$wire_point_size else 1.5) else 0,
         link.col = input$wire_color_plus,
         link.lwd = input$wire_thickness,
         tar.pt.bg = input$wire_color_plus
@@ -4365,6 +4586,7 @@ server <- function(input, output, session) {
     # Check if wireframe should be shown and links are available
     show_wireframe <- isTRUE(input$deform_show_wireframe) && !is.null(rv$links) && nrow(rv$links) > 0
     show_mean <- isTRUE(input$deform_show_mean)
+    show_points <- isTRUE(input$deform_show_points)
 
     # Draw mean shape (links and points)
     if (show_mean) {
@@ -4375,28 +4597,41 @@ server <- function(input, output, session) {
           )
         }
       }
-      points(ref_plot[,1], ref_plot[,2], pch = 21, bg = input$deform_point_color, cex = input$deform_point_size)
+      if (show_points) {
+        points(ref_plot[,1], ref_plot[,2], pch = 21, bg = input$deform_point_color, cex = input$deform_point_size)
+      }
     }
+
+    show_minus_shape <- isTRUE(input$deform_show_minus)
+    show_plus_shape <- isTRUE(input$deform_show_plus)
 
     # Draw minus shape (links and points)
-    if (show_wireframe) {
-      for (i in seq_len(nrow(rv$links))) {
-        lines(shape_minus_plot[rv$links[i, ], 1], shape_minus_plot[rv$links[i, ], 2],
-          col = input$deform_minus_color, lwd = input$deform_line_width, lty = 2
-        )
+    if (show_minus_shape) {
+      if (show_wireframe) {
+        for (i in seq_len(nrow(rv$links))) {
+          lines(shape_minus_plot[rv$links[i, ], 1], shape_minus_plot[rv$links[i, ], 2],
+            col = input$deform_minus_color, lwd = input$deform_line_width, lty = 2
+          )
+        }
+      }
+      if (show_points) {
+        points(shape_minus_plot[,1], shape_minus_plot[,2], pch = 21, bg = input$deform_minus_color, cex = input$deform_point_size * 0.8)
       }
     }
-    points(shape_minus_plot[,1], shape_minus_plot[,2], pch = 21, bg = input$deform_minus_color, cex = input$deform_point_size * 0.8)
 
     # Draw plus shape (links and points)
-    if (show_wireframe) {
-      for (i in seq_len(nrow(rv$links))) {
-        lines(shape_plus_plot[rv$links[i, ], 1], shape_plus_plot[rv$links[i, ], 2],
-          col = input$deform_plus_color, lwd = input$deform_line_width, lty = 2
-        )
+    if (show_plus_shape) {
+      if (show_wireframe) {
+        for (i in seq_len(nrow(rv$links))) {
+          lines(shape_plus_plot[rv$links[i, ], 1], shape_plus_plot[rv$links[i, ], 2],
+            col = input$deform_plus_color, lwd = input$deform_line_width, lty = 2
+          )
+        }
+      }
+      if (show_points) {
+        points(shape_plus_plot[,1], shape_plus_plot[,2], pch = 21, bg = input$deform_plus_color, cex = input$deform_point_size * 0.8)
       }
     }
-    points(shape_plus_plot[,1], shape_plus_plot[,2], pch = 21, bg = input$deform_plus_color, cex = input$deform_point_size * 0.8)
 
     # Add landmark numbers if requested
     if (isTRUE(input$deform_show_landmarks)) {
@@ -4407,28 +4642,31 @@ server <- function(input, output, session) {
     }
 
     # Add legend (dynamically based on what's shown)
+    leg_labels <- character(0)
+    leg_col    <- character(0)
+    leg_lty    <- integer(0)
     if (show_mean) {
+      leg_labels <- c(leg_labels, "Mean Shape")
+      leg_col    <- c(leg_col, input$deform_mean_color)
+      leg_lty    <- c(leg_lty, 1L)
+    }
+    if (show_minus_shape) {
+      leg_labels <- c(leg_labels, paste0(input$deform_pc, " = ", input$deform_pc_min))
+      leg_col    <- c(leg_col, input$deform_minus_color)
+      leg_lty    <- c(leg_lty, 2L)
+    }
+    if (show_plus_shape) {
+      leg_labels <- c(leg_labels, paste0(input$deform_pc, " = ", input$deform_pc_max))
+      leg_col    <- c(leg_col, input$deform_plus_color)
+      leg_lty    <- c(leg_lty, 2L)
+    }
+    if (length(leg_labels) > 0) {
       legend("topright",
-        legend = c(
-          "Mean Shape",
-          paste0(input$deform_pc, " = ", input$deform_pc_min),
-          paste0(input$deform_pc, " = ", input$deform_pc_max)
-        ),
-        col = c(input$deform_mean_color, input$deform_minus_color, input$deform_plus_color),
-        lwd = input$deform_line_width,
-        lty = c(1, 2, 2),
-        bty = "n"
-      )
-    } else {
-      legend("topright",
-        legend = c(
-          paste0(input$deform_pc, " = ", input$deform_pc_min),
-          paste0(input$deform_pc, " = ", input$deform_pc_max)
-        ),
-        col = c(input$deform_minus_color, input$deform_plus_color),
-        lwd = input$deform_line_width,
-        lty = c(2, 2),
-        bty = "n"
+        legend = leg_labels,
+        col    = leg_col,
+        lwd    = input$deform_line_width,
+        lty    = leg_lty,
+        bty    = "n"
       )
     }
   })
@@ -4467,6 +4705,7 @@ server <- function(input, output, session) {
 
     show_wireframe <- isTRUE(input$deform_show_wireframe) && !is.null(current_links) && nrow(current_links) > 0
     show_mean <- isTRUE(input$deform_show_mean)
+    show_points <- isTRUE(input$deform_show_points)
 
     # Landmark label settings for 3D
     show_lm_numbers <- isTRUE(input$deform_show_landmarks)
@@ -4481,16 +4720,19 @@ server <- function(input, output, session) {
 
     # Mean shape
     if (show_mean) {
-      p <- p %>% add_trace(
-        type = "scatter3d", mode = pt_mode,
-        x = rv$ref[, 1], y = rv$ref[, 2], z = rv$ref[, 3],
-        marker = list(size = input$deform_point_size * 3, color = input$deform_mean_color),
-        name = "Mean Shape", showlegend = TRUE,
-        text = if (show_lm_numbers) lm_labels else "",
-        textposition = "top center", textfont = lm_font,
-        hoverinfo = if (show_lm_numbers) "text" else "none",
-        hovertext = if (show_lm_numbers) paste0("Mean LM ", seq_len(nrow(rv$ref))) else ""
-      )
+      if (show_points) {
+        p <- p %>% add_trace(
+          type = "scatter3d", mode = pt_mode,
+          x = rv$ref[, 1], y = rv$ref[, 2], z = rv$ref[, 3],
+          marker = list(size = input$deform_point_size * 3, color = input$deform_mean_color),
+          name = "Mean Shape", showlegend = TRUE,
+          text = if (show_lm_numbers) lm_labels else "",
+          textposition = if (show_lm_numbers) "top center" else NULL,
+          textfont = if (show_lm_numbers) lm_font else NULL,
+          hoverinfo = if (show_lm_numbers) "text" else "none",
+          hovertext = if (show_lm_numbers) paste0("Mean LM ", seq_len(nrow(rv$ref))) else ""
+        )
+      }
       if (show_wireframe) {
         for (j in seq_len(nrow(current_links))) {
           idx <- current_links[j, ]
@@ -4504,49 +4746,62 @@ server <- function(input, output, session) {
       }
     }
 
+    show_minus_shape <- isTRUE(input$deform_show_minus)
+    show_plus_shape <- isTRUE(input$deform_show_plus)
+
     # Min PC shape
-    p <- p %>% add_trace(
-      type = "scatter3d", mode = pt_mode,
-      x = shape_minus[, 1], y = shape_minus[, 2], z = shape_minus[, 3],
-      marker = list(size = input$deform_point_size * 2.5, color = input$deform_minus_color),
-      name = paste0(input$deform_pc, " = ", input$deform_pc_min), showlegend = TRUE,
-      text = if (show_lm_numbers) lm_labels else "",
-      textposition = "top center", textfont = lm_font,
-      hoverinfo = if (show_lm_numbers) "text" else "none",
-      hovertext = if (show_lm_numbers) paste0("Min LM ", seq_len(nrow(shape_minus))) else ""
-    )
-    if (show_wireframe) {
-      for (j in seq_len(nrow(current_links))) {
-        idx <- current_links[j, ]
+    if (show_minus_shape) {
+      if (show_points) {
         p <- p %>% add_trace(
-          type = "scatter3d", mode = "lines",
-          x = shape_minus[idx, 1], y = shape_minus[idx, 2], z = shape_minus[idx, 3],
-          line = list(color = input$deform_minus_color, width = input$deform_line_width * 1.5, dash = "dash"),
-          showlegend = FALSE, hoverinfo = "none"
+          type = "scatter3d", mode = pt_mode,
+          x = shape_minus[, 1], y = shape_minus[, 2], z = shape_minus[, 3],
+          marker = list(size = input$deform_point_size * 2.5, color = input$deform_minus_color),
+          name = paste0(input$deform_pc, " = ", input$deform_pc_min), showlegend = TRUE,
+          text = if (show_lm_numbers) lm_labels else "",
+          textposition = if (show_lm_numbers) "top center" else NULL,
+          textfont = if (show_lm_numbers) lm_font else NULL,
+          hoverinfo = if (show_lm_numbers) "text" else "none",
+          hovertext = if (show_lm_numbers) paste0("Min LM ", seq_len(nrow(shape_minus))) else ""
         )
+      }
+      if (show_wireframe) {
+        for (j in seq_len(nrow(current_links))) {
+          idx <- current_links[j, ]
+          p <- p %>% add_trace(
+            type = "scatter3d", mode = "lines",
+            x = shape_minus[idx, 1], y = shape_minus[idx, 2], z = shape_minus[idx, 3],
+            line = list(color = input$deform_minus_color, width = input$deform_line_width * 1.5, dash = "dash"),
+            showlegend = FALSE, hoverinfo = "none"
+          )
+        }
       }
     }
 
     # Max PC shape
-    p <- p %>% add_trace(
-      type = "scatter3d", mode = pt_mode,
-      x = shape_plus[, 1], y = shape_plus[, 2], z = shape_plus[, 3],
-      marker = list(size = input$deform_point_size * 2.5, color = input$deform_plus_color),
-      name = paste0(input$deform_pc, " = ", input$deform_pc_max), showlegend = TRUE,
-      text = if (show_lm_numbers) lm_labels else "",
-      textposition = "top center", textfont = lm_font,
-      hoverinfo = if (show_lm_numbers) "text" else "none",
-      hovertext = if (show_lm_numbers) paste0("Max LM ", seq_len(nrow(shape_plus))) else ""
-    )
-    if (show_wireframe) {
-      for (j in seq_len(nrow(current_links))) {
-        idx <- current_links[j, ]
+    if (show_plus_shape) {
+      if (show_points) {
         p <- p %>% add_trace(
-          type = "scatter3d", mode = "lines",
-          x = shape_plus[idx, 1], y = shape_plus[idx, 2], z = shape_plus[idx, 3],
-          line = list(color = input$deform_plus_color, width = input$deform_line_width * 1.5, dash = "dash"),
-          showlegend = FALSE, hoverinfo = "none"
+          type = "scatter3d", mode = pt_mode,
+          x = shape_plus[, 1], y = shape_plus[, 2], z = shape_plus[, 3],
+          marker = list(size = input$deform_point_size * 2.5, color = input$deform_plus_color),
+          name = paste0(input$deform_pc, " = ", input$deform_pc_max), showlegend = TRUE,
+          text = if (show_lm_numbers) lm_labels else "",
+          textposition = if (show_lm_numbers) "top center" else NULL,
+          textfont = if (show_lm_numbers) lm_font else NULL,
+          hoverinfo = if (show_lm_numbers) "text" else "none",
+          hovertext = if (show_lm_numbers) paste0("Max LM ", seq_len(nrow(shape_plus))) else ""
         )
+      }
+      if (show_wireframe) {
+        for (j in seq_len(nrow(current_links))) {
+          idx <- current_links[j, ]
+          p <- p %>% add_trace(
+            type = "scatter3d", mode = "lines",
+            x = shape_plus[idx, 1], y = shape_plus[idx, 2], z = shape_plus[idx, 3],
+            line = list(color = input$deform_plus_color, width = input$deform_line_width * 1.5, dash = "dash"),
+            showlegend = FALSE, hoverinfo = "none"
+          )
+        }
       }
     }
 
@@ -4612,6 +4867,115 @@ server <- function(input, output, session) {
     )
   }
 
+  apply_pca_axis_scales <- function(p) {
+    make_breaks_fn <- function(interval) {
+      force(interval)
+      function(lims) {
+        from <- ceiling(lims[1] / interval) * interval
+        to   <- floor(lims[2] / interval) * interval
+        if (from > to) return(numeric(0))
+        seq(from, to, by = interval)
+      }
+    }
+
+    x_args <- list()
+    y_args <- list()
+
+    # Custom axis range (limits)
+    if (isTRUE(input$pca_custom_range)) {
+      if (!is.null(input$pca_x_min) && !is.na(input$pca_x_min) &&
+          !is.null(input$pca_x_max) && !is.na(input$pca_x_max) &&
+          input$pca_x_min < input$pca_x_max) {
+        x_args$limits <- c(input$pca_x_min, input$pca_x_max)
+      }
+      if (!is.null(input$pca_y_min) && !is.na(input$pca_y_min) &&
+          !is.null(input$pca_y_max) && !is.na(input$pca_y_max) &&
+          input$pca_y_min < input$pca_y_max) {
+        y_args$limits <- c(input$pca_y_min, input$pca_y_max)
+      }
+    }
+
+    # Custom axis intervals (breaks)
+    if (isTRUE(input$pca_custom_breaks)) {
+      xi <- if (!is.null(input$pca_x_interval) && !is.na(input$pca_x_interval)) input$pca_x_interval else 0
+      yi <- if (!is.null(input$pca_y_interval) && !is.na(input$pca_y_interval)) input$pca_y_interval else 0
+      if (xi > 0) x_args$breaks <- make_breaks_fn(xi)
+      if (yi > 0) y_args$breaks <- make_breaks_fn(yi)
+    }
+
+    # Dual-axis (secondary axis for complete box with ticks on top/right)
+    if (isTRUE(input$pca_dual_axis)) {
+      x_args$sec.axis <- dup_axis(labels = NULL, name = NULL)
+      y_args$sec.axis <- dup_axis(labels = NULL, name = NULL)
+    }
+
+    if (length(x_args) > 0) p <- p + do.call(scale_x_continuous, x_args)
+    if (length(y_args) > 0) p <- p + do.call(scale_y_continuous, y_args)
+    p
+  }
+
+  # Helper: apply axis range, flip, dual-axis, and coord to stat plot ggplot objects
+  # prefix: "cs", "disp", "allo", "eigen"
+  # has_x_range: TRUE for plots with a continuous X axis (allometry)
+  # apply_y_flip: FALSE for allometry where the flip is already done via data negation
+  apply_stat_axis_scales <- function(p, prefix, has_x_range = FALSE, apply_y_flip = TRUE) {
+    y_scale_args <- list()
+    x_scale_args <- list()
+
+    # Y axis flip via scale transform (skip for allo — already handled by data negation)
+    if (apply_y_flip) {
+      flip_y_id <- paste0(prefix, "_flip_y")
+      if (!is.null(input[[flip_y_id]]) && isTRUE(input[[flip_y_id]])) {
+        y_scale_args$transform <- "reverse"
+      }
+    }
+
+    # Dual axis — mirror primary axis ticks on the right/top
+    dual_axis_id <- paste0(prefix, "_dual_axis")
+    if (!is.null(input[[dual_axis_id]]) && isTRUE(input[[dual_axis_id]])) {
+      y_scale_args$sec.axis <- dup_axis(labels = NULL, name = NULL)
+    }
+
+    if (length(y_scale_args) > 0) p <- p + do.call(scale_y_continuous, y_scale_args)
+
+    # Custom Y range — use coord_cartesian (zoom without clipping bracket geoms) or
+    # coord_flip(ylim=...) when coord_flip is also active.
+    # This replaces any coord_flip() that was added earlier in the renderPlot.
+    coord_flip_id <- paste0(prefix, "_coord_flip")
+    do_flip  <- !is.null(input[[coord_flip_id]]) && isTRUE(input[[coord_flip_id]])
+
+    custom_range_id <- paste0(prefix, "_custom_range")
+    valid_y <- FALSE
+    y_lim   <- NULL
+    if (!is.null(input[[custom_range_id]]) && isTRUE(input[[custom_range_id]])) {
+      y_min_v <- input[[paste0(prefix, "_y_min")]]
+      y_max_v <- input[[paste0(prefix, "_y_max")]]
+      if (!is.null(y_min_v) && !is.null(y_max_v) && !is.na(y_min_v) && !is.na(y_max_v) && y_min_v < y_max_v) {
+        valid_y <- TRUE
+        y_lim   <- c(y_min_v, y_max_v)
+      }
+      if (has_x_range) {
+        x_min_v <- input[[paste0(prefix, "_x_min")]]
+        x_max_v <- input[[paste0(prefix, "_x_max")]]
+        if (!is.null(x_min_v) && !is.null(x_max_v) && !is.na(x_min_v) && !is.na(x_max_v) && x_min_v < x_max_v) {
+          x_scale_args$limits <- c(x_min_v, x_max_v)
+        }
+      }
+    }
+
+    # Apply a single coord (prevents "two coord systems" warning)
+    if (valid_y && do_flip) {
+      p <- p + coord_flip(ylim = y_lim)
+    } else if (valid_y) {
+      p <- p + coord_cartesian(ylim = y_lim)
+    } else if (do_flip) {
+      p <- p + coord_flip()
+    }
+
+    if (length(x_scale_args) > 0) p <- p + do.call(scale_x_continuous, x_scale_args)
+    p
+  }
+
   add_pca_color_spread_layers <- function(p, plot_data, comp_x, comp_y) {
     spread_type <- if (!is.null(input$pca_spread_type)) input$pca_spread_type else "ellipse"
     spread_fill <- if (!is.null(input$pca_spread_fill) && input$pca_spread_customize) input$pca_spread_fill else TRUE
@@ -4621,33 +4985,36 @@ server <- function(input, output, session) {
     ellipse_level <- if (!is.null(input$pca_ellipse_level) && input$pca_spread_customize) input$pca_ellipse_level else input$confidence
 
     if (spread_type == "ellipse") {
-      if (spread_fill && spread_outline) {
-        p <- p + stat_ellipse(type = "norm", alpha = spread_alpha, level = ellipse_level, linewidth = spread_lwd, geom = "polygon")
-      } else if (spread_fill) {
-        p <- p + stat_ellipse(type = "norm", alpha = spread_alpha, level = ellipse_level, linewidth = 0, geom = "polygon")
-      } else if (spread_outline) {
-        p <- p + stat_ellipse(type = "norm", level = ellipse_level, linewidth = spread_lwd, geom = "path")
+      ellipse_data <- plot_data[plot_data$Group %in% names(which(table(plot_data$Group) >= 3)), ]
+      if (nrow(ellipse_data) > 0) {
+        if (spread_fill && spread_outline) {
+          p <- p + stat_ellipse(data = ellipse_data, type = "norm", alpha = spread_alpha, level = ellipse_level, linewidth = spread_lwd, geom = "polygon")
+        } else if (spread_fill) {
+          p <- p + stat_ellipse(data = ellipse_data, type = "norm", alpha = spread_alpha, level = ellipse_level, linewidth = 0, geom = "polygon")
+        } else if (spread_outline) {
+          p <- p + stat_ellipse(data = ellipse_data, type = "norm", level = ellipse_level, linewidth = spread_lwd, geom = "path")
+        }
       }
     } else if (spread_type == "hull") {
       hull_data <- do.call(rbind, lapply(split(plot_data, plot_data$Group), function(df) {
         df[chull(df[[comp_x]], df[[comp_y]]), ]
       }))
       if (spread_fill && spread_outline) {
-        p <- p + geom_polygon(data = hull_data, aes_string(x = comp_x, y = comp_y, fill = "Group", color = "Group"), alpha = spread_alpha, linewidth = spread_lwd)
+        p <- p + geom_polygon(data = hull_data, aes(x = .data[[comp_x]], y = .data[[comp_y]], fill = Group, color = Group), alpha = spread_alpha, linewidth = spread_lwd)
       } else if (spread_fill) {
-        p <- p + geom_polygon(data = hull_data, aes_string(x = comp_x, y = comp_y, fill = "Group"), alpha = spread_alpha, color = NA)
+        p <- p + geom_polygon(data = hull_data, aes(x = .data[[comp_x]], y = .data[[comp_y]], fill = Group), alpha = spread_alpha, color = NA)
       } else if (spread_outline) {
-        p <- p + geom_polygon(data = hull_data, aes_string(x = comp_x, y = comp_y, color = "Group"), fill = NA, linewidth = spread_lwd)
+        p <- p + geom_polygon(data = hull_data, aes(x = .data[[comp_x]], y = .data[[comp_y]], color = Group), fill = NA, linewidth = spread_lwd)
       }
     } else if (spread_type == "density") {
       density_bins <- if (!is.null(input$pca_density_bins) && input$pca_spread_customize) input$pca_density_bins else 5
       if (spread_fill && spread_outline) {
-        p <- p + geom_density_2d_filled(aes_string(x = comp_x, y = comp_y), alpha = spread_alpha, bins = density_bins, show.legend = FALSE) +
-          geom_density_2d(aes_string(x = comp_x, y = comp_y, color = "Group"), linewidth = spread_lwd, bins = density_bins)
+        p <- p + geom_density_2d_filled(aes(x = .data[[comp_x]], y = .data[[comp_y]]), alpha = spread_alpha, bins = density_bins, show.legend = FALSE) +
+          geom_density_2d(aes(x = .data[[comp_x]], y = .data[[comp_y]], color = Group), linewidth = spread_lwd, bins = density_bins)
       } else if (spread_fill) {
-        p <- p + geom_density_2d_filled(aes_string(x = comp_x, y = comp_y), alpha = spread_alpha, bins = density_bins, show.legend = FALSE)
+        p <- p + geom_density_2d_filled(aes(x = .data[[comp_x]], y = .data[[comp_y]]), alpha = spread_alpha, bins = density_bins, show.legend = FALSE)
       } else if (spread_outline) {
-        p <- p + geom_density_2d(aes_string(x = comp_x, y = comp_y, color = "Group"), linewidth = spread_lwd, bins = density_bins)
+        p <- p + geom_density_2d(aes(x = .data[[comp_x]], y = .data[[comp_y]], color = Group), linewidth = spread_lwd, bins = density_bins)
       }
     }
 
@@ -4660,16 +5027,17 @@ server <- function(input, output, session) {
     spread_lwd <- if (!is.null(input$pca_spread_line_width) && input$pca_spread_customize) input$pca_spread_line_width else 1.5
     ellipse_level <- if (!is.null(input$pca_ellipse_level) && input$pca_spread_customize) input$pca_ellipse_level else input$confidence
 
-    if (spread_type == "ellipse" && spread_outline) {
-      p <- p + stat_ellipse(level = ellipse_level, color = "black", linewidth = spread_lwd)
+    ellipse_data <- plot_data[plot_data$Group %in% names(which(table(plot_data$Group) >= 3)), ]
+    if (spread_type == "ellipse" && spread_outline && nrow(ellipse_data) > 0) {
+      p <- p + stat_ellipse(data = ellipse_data, level = ellipse_level, color = "black", linewidth = spread_lwd)
     } else if (spread_type == "hull" && spread_outline) {
       hull_data <- do.call(rbind, lapply(split(plot_data, plot_data$Group), function(df) {
         df[chull(df[[comp_x]], df[[comp_y]]), ]
       }))
-      p <- p + geom_polygon(data = hull_data, aes_string(x = comp_x, y = comp_y, group = "Group"), fill = NA, color = "black", linewidth = spread_lwd)
+      p <- p + geom_polygon(data = hull_data, aes(x = .data[[comp_x]], y = .data[[comp_y]], group = Group), fill = NA, color = "black", linewidth = spread_lwd)
     } else if (spread_type == "density" && spread_outline) {
       density_bins <- if (!is.null(input$pca_density_bins) && input$pca_spread_customize) input$pca_density_bins else 5
-      p <- p + geom_density_2d(aes_string(x = comp_x, y = comp_y, group = "Group"), color = "black", linewidth = spread_lwd, bins = density_bins)
+      p <- p + geom_density_2d(aes(x = .data[[comp_x]], y = .data[[comp_y]], group = Group), color = "black", linewidth = spread_lwd, bins = density_bins)
     }
 
     p
@@ -4681,7 +5049,8 @@ server <- function(input, output, session) {
       theme(
         legend.position = "right",
         legend.title = element_blank(),
-        plot.background = element_rect(fill = input$plot_bg),
+        plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.background = element_rect(fill = input$plot_bg, color = NA),
         panel.background = element_rect(fill = input$plot_bg)
       ) +
       labs(x = x_label, y = y_label, title = title)
@@ -4715,14 +5084,19 @@ server <- function(input, output, session) {
       y_label <- context$y_label
     }
 
-    p <- ggplot(plot_data, aes_string(x = comp_x, y = comp_y, color = "Group", fill = "Group")) +
+    p <- ggplot(plot_data, aes(x = .data[[comp_x]], y = .data[[comp_y]], color = Group, fill = Group)) +
       geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
       geom_vline(xintercept = 0, linetype = "dashed", color = "grey50")
 
     p <- add_pca_color_spread_layers(p, plot_data, comp_x, comp_y)
 
-    p <- p + geom_point(size = 4, shape = 21, stroke = 1.5)
+    pt_size   <- if (!is.null(input$pca_point_size))   input$pca_point_size   else 3
+    pt_stroke <- if (!is.null(input$pca_point_stroke)) input$pca_point_stroke else 1.5
+    p <- p + geom_point(size = pt_size, shape = 21, stroke = pt_stroke)
     p <- apply_pca_download_theme(p, base_size, title, x_label, y_label)
+
+    # Axis scale: range, intervals, and dual-axis
+    p <- apply_pca_axis_scales(p)
 
     colors <- get_group_colors()
     if (!is.null(colors)) {
@@ -4762,19 +5136,23 @@ server <- function(input, output, session) {
     fill_values <- sapply(shape_values, function(shape_val) {
       if (shape_val %in% c(21, 22, 23, 24, 25)) "black" else "white"
     })
-    point_size <- if (!is.null(input$pca_bw_point_size)) input$pca_bw_point_size else 5
+    point_size <- if (!is.null(input$pca_point_size))   input$pca_point_size   else 3
+    pt_stroke  <- if (!is.null(input$pca_point_stroke)) input$pca_point_stroke else 1.5
 
-    p <- ggplot(plot_data, aes_string(x = comp_x, y = comp_y, shape = "Group", fill = "Group")) +
+    p <- ggplot(plot_data, aes(x = .data[[comp_x]], y = .data[[comp_y]], shape = Group, fill = Group)) +
       geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
       geom_vline(xintercept = 0, linetype = "dashed", color = "grey50")
 
     p <- add_pca_bw_spread_layers(p, plot_data, comp_x, comp_y)
 
     p <- p +
-      geom_point(size = point_size, stroke = 1.5, color = "black") +
+      geom_point(size = point_size, stroke = pt_stroke, color = "black") +
       scale_shape_manual(values = shape_values) +
       scale_fill_manual(values = fill_values)
     p <- apply_pca_download_theme(p, base_size, title, x_label, y_label)
+
+    # Axis scale: range, intervals, and dual-axis
+    p <- apply_pca_axis_scales(p)
 
     if (isTRUE(input$pca_show_labels)) {
       p <- p + geom_text(aes(label = .data$Specimen), vjust = -1, size = 3)
@@ -4811,16 +5189,33 @@ server <- function(input, output, session) {
     group_cols <- colors[as.numeric(plot_data$Group)]
 
     par(bg = input$plot_bg)
+
+    # Custom axis ranges for 3D
+    xlim_3d <- if (isTRUE(input$pca_custom_range) &&
+                   !is.null(input$pca_x_min) && !is.na(input$pca_x_min) &&
+                   !is.null(input$pca_x_max) && !is.na(input$pca_x_max) &&
+                   input$pca_x_min < input$pca_x_max) c(input$pca_x_min, input$pca_x_max) else NULL
+    ylim_3d <- if (isTRUE(input$pca_custom_range) &&
+                   !is.null(input$pca_y_min) && !is.na(input$pca_y_min) &&
+                   !is.null(input$pca_y_max) && !is.na(input$pca_y_max) &&
+                   input$pca_y_min < input$pca_y_max) c(input$pca_y_min, input$pca_y_max) else NULL
+    zlim_3d <- if (isTRUE(input$pca_custom_range) &&
+                   !is.null(input$pca_z_min) && !is.na(input$pca_z_min) &&
+                   !is.null(input$pca_z_max) && !is.na(input$pca_z_max) &&
+                   input$pca_z_min < input$pca_z_max) c(input$pca_z_min, input$pca_z_max) else NULL
+
     s3d <- scatterplot3d(
       plot_data[[comp_x]], plot_data[[comp_y]], plot_data[[comp_z]],
-      color = group_cols, pch = 19, cex.symbols = input$pca_3d_point_size,
+      color = group_cols, pch = 19,
+      cex.symbols = if (!is.null(input$pca_point_size)) input$pca_point_size else 3,
       xlab = if (isTRUE(input$pca_show_axis)) x_label else "",
       ylab = if (isTRUE(input$pca_show_axis)) y_label else "",
       zlab = if (isTRUE(input$pca_show_axis)) z_label else "",
       main = title,
       grid = isTRUE(input$pca_show_grid),
       box = isTRUE(input$pca_show_axis),
-      axis = isTRUE(input$pca_show_axis)
+      axis = isTRUE(input$pca_show_axis),
+      xlim = xlim_3d, ylim = ylim_3d, zlim = zlim_3d
     )
 
     if (isTRUE(input$pca_show_labels)) {
@@ -5256,40 +5651,83 @@ server <- function(input, output, session) {
       # Use plotRefToTarget for wireframe and TPS grid
       plot_method <- switch(viz_type,
         "tps_grid" = "TPS",
-        "vector"  # default for wireframe
+        if (!isTRUE(input$wire_show_points) && isTRUE(input$wire_show_arrows)) "vector" else "points"
       )
 
+      # Respect the show wireframe checkbox (same as display plots)
+      show_links <- if (isTRUE(input$wire_show_wireframe)) links else NULL
+
+      title_prefix <- if (nzchar(view_name)) paste0(view_name, " ") else ""
+
       plotRefToTarget(ref, shape_minus,
-        links = links, method = plot_method, mag = input$wire_mag,
+        links = show_links, method = plot_method, mag = input$wire_mag,
         gridPars = gridPar(
-          pt.bg = input$point_color, pt.size = 1.5,
-          link.col = input$wire_color_minus, link.lwd = input$wire_thickness,
-          tar.pt.bg = input$wire_color_minus
+          pt.size = 0,
+          link.col = "transparent",
+          tar.pt.bg = input$point_color,
+          tar.pt.size = if (isTRUE(input$wire_show_points)) (if (!is.null(input$wire_point_size)) input$wire_point_size else 1.5) else 0,
+          tar.link.col = input$wire_color_minus,
+          tar.link.lwd = input$wire_thickness
         )
       )
-      title(paste0(view_name, " ", input$wire_pc, " = ", input$wire_pc_min))
-      
+      # Draw wireframe manually in vector mode
+      if (plot_method == "vector" && isTRUE(input$wire_show_wireframe) && !is.null(links) && nrow(links) > 0) {
+        for (i in seq_len(nrow(links))) {
+          lines(shape_minus[links[i, ], 1], shape_minus[links[i, ], 2],
+                col = input$wire_color_minus, lwd = input$wire_thickness)
+        }
+      }
+      # Draw average/ref shape wireframe if requested
+      if (isTRUE(input$show_average) && isTRUE(input$wire_show_wireframe) && !is.null(links) && nrow(links) > 0) {
+        for (i in seq_len(nrow(links))) {
+          lines(ref[links[i, ], 1], ref[links[i, ], 2],
+                col = input$wire_color_avg, lwd = input$wire_thickness)
+        }
+      }
+      title(paste0(title_prefix, input$wire_pc, " = ", input$wire_pc_min))
+
       # Add landmark numbers for minus shape if enabled
       if (isTRUE(input$wire_show_landmarks)) {
+        lm_size  <- if (!is.null(input$wire_landmark_size))  input$wire_landmark_size  else 1
+        lm_color <- if (!is.null(input$wire_landmark_color)) input$wire_landmark_color else "#000000"
         text(ref[, 1], ref[, 2], labels = seq_len(nrow(ref)),
-             cex = input$wire_landmark_size, col = input$wire_landmark_color,
+             cex = lm_size, col = lm_color,
              pos = 3, offset = 0.3)
       }
 
       plotRefToTarget(ref, shape_plus,
-        links = links, method = plot_method, mag = input$wire_mag,
+        links = show_links, method = plot_method, mag = input$wire_mag,
         gridPars = gridPar(
-          pt.bg = input$point_color, pt.size = 1.5,
-          link.col = input$wire_color_plus, link.lwd = input$wire_thickness,
-          tar.pt.bg = input$wire_color_plus
+          pt.size = 0,
+          link.col = "transparent",
+          tar.pt.bg = input$point_color,
+          tar.pt.size = if (isTRUE(input$wire_show_points)) (if (!is.null(input$wire_point_size)) input$wire_point_size else 1.5) else 0,
+          tar.link.col = input$wire_color_plus,
+          tar.link.lwd = input$wire_thickness
         )
       )
-      title(paste0(view_name, " ", input$wire_pc, " = ", input$wire_pc_max))
-      
+      # Draw wireframe manually in vector mode
+      if (plot_method == "vector" && isTRUE(input$wire_show_wireframe) && !is.null(links) && nrow(links) > 0) {
+        for (i in seq_len(nrow(links))) {
+          lines(shape_plus[links[i, ], 1], shape_plus[links[i, ], 2],
+                col = input$wire_color_plus, lwd = input$wire_thickness)
+        }
+      }
+      # Draw average/ref shape wireframe if requested
+      if (isTRUE(input$show_average) && isTRUE(input$wire_show_wireframe) && !is.null(links) && nrow(links) > 0) {
+        for (i in seq_len(nrow(links))) {
+          lines(ref[links[i, ], 1], ref[links[i, ], 2],
+                col = input$wire_color_avg, lwd = input$wire_thickness)
+        }
+      }
+      title(paste0(title_prefix, input$wire_pc, " = ", input$wire_pc_max))
+
       # Add landmark numbers for plus shape if enabled
       if (isTRUE(input$wire_show_landmarks)) {
+        lm_size  <- if (!is.null(input$wire_landmark_size))  input$wire_landmark_size  else 1
+        lm_color <- if (!is.null(input$wire_landmark_color)) input$wire_landmark_color else "#000000"
         text(ref[, 1], ref[, 2], labels = seq_len(nrow(ref)),
-             cex = input$wire_landmark_size, col = input$wire_landmark_color,
+             cex = lm_size, col = lm_color,
              pos = 3, offset = 0.3)
       }
     }
@@ -5454,6 +5892,7 @@ server <- function(input, output, session) {
       # Check display options
       show_wireframe <- isTRUE(input$deform_show_wireframe) && !is.null(rv$links) && nrow(rv$links) > 0
       show_mean <- isTRUE(input$deform_show_mean)
+      show_points <- isTRUE(input$deform_show_points)
 
       # Draw mean shape
       if (show_mean) {
@@ -5464,28 +5903,41 @@ server <- function(input, output, session) {
             )
           }
         }
-        points(ref_plot[,1], ref_plot[,2], pch = 21, bg = input$deform_point_color, cex = 1.5)
+        if (show_points) {
+          points(ref_plot[,1], ref_plot[,2], pch = 21, bg = input$deform_point_color, cex = input$deform_point_size)
+        }
       }
+
+      show_minus_shape <- isTRUE(input$deform_show_minus)
+      show_plus_shape  <- isTRUE(input$deform_show_plus)
 
       # Draw minus shape
-      if (show_wireframe) {
-        for (i in seq_len(nrow(rv$links))) {
-          lines(shape_minus_plot[rv$links[i, ], 1], shape_minus_plot[rv$links[i, ], 2],
-            col = input$deform_minus_color, lwd = input$deform_line_width, lty = 2
-          )
+      if (show_minus_shape) {
+        if (show_wireframe) {
+          for (i in seq_len(nrow(rv$links))) {
+            lines(shape_minus_plot[rv$links[i, ], 1], shape_minus_plot[rv$links[i, ], 2],
+              col = input$deform_minus_color, lwd = input$deform_line_width, lty = 2
+            )
+          }
+        }
+        if (show_points) {
+          points(shape_minus_plot[,1], shape_minus_plot[,2], pch = 21, bg = input$deform_minus_color, cex = input$deform_point_size * 0.8)
         }
       }
-      points(shape_minus_plot[,1], shape_minus_plot[,2], pch = 21, bg = input$deform_minus_color, cex = 1.2)
 
       # Draw plus shape
-      if (show_wireframe) {
-        for (i in seq_len(nrow(rv$links))) {
-          lines(shape_plus_plot[rv$links[i, ], 1], shape_plus_plot[rv$links[i, ], 2],
-            col = input$deform_plus_color, lwd = input$deform_line_width, lty = 2
-          )
+      if (show_plus_shape) {
+        if (show_wireframe) {
+          for (i in seq_len(nrow(rv$links))) {
+            lines(shape_plus_plot[rv$links[i, ], 1], shape_plus_plot[rv$links[i, ], 2],
+              col = input$deform_plus_color, lwd = input$deform_line_width, lty = 2
+            )
+          }
+        }
+        if (show_points) {
+          points(shape_plus_plot[,1], shape_plus_plot[,2], pch = 21, bg = input$deform_plus_color, cex = input$deform_point_size * 0.8)
         }
       }
-      points(shape_plus_plot[,1], shape_plus_plot[,2], pch = 21, bg = input$deform_plus_color, cex = 1.2)
 
       # Add landmark numbers if enabled
       if (isTRUE(input$deform_show_landmarks)) {
@@ -5495,28 +5947,31 @@ server <- function(input, output, session) {
       }
 
       # Legend based on what's shown
+      leg_labels <- character(0)
+      leg_col    <- character(0)
+      leg_lty    <- integer(0)
       if (show_mean) {
+        leg_labels <- c(leg_labels, "Mean Shape")
+        leg_col    <- c(leg_col, input$deform_mean_color)
+        leg_lty    <- c(leg_lty, 1L)
+      }
+      if (show_minus_shape) {
+        leg_labels <- c(leg_labels, paste0(input$deform_pc, " = ", input$deform_pc_min))
+        leg_col    <- c(leg_col, input$deform_minus_color)
+        leg_lty    <- c(leg_lty, 2L)
+      }
+      if (show_plus_shape) {
+        leg_labels <- c(leg_labels, paste0(input$deform_pc, " = ", input$deform_pc_max))
+        leg_col    <- c(leg_col, input$deform_plus_color)
+        leg_lty    <- c(leg_lty, 2L)
+      }
+      if (length(leg_labels) > 0) {
         legend("topright",
-          legend = c(
-            "Mean Shape",
-            paste0(input$deform_pc, " = ", input$deform_pc_min),
-            paste0(input$deform_pc, " = ", input$deform_pc_max)
-          ),
-          col = c(input$deform_mean_color, input$deform_minus_color, input$deform_plus_color),
-          lwd = input$deform_line_width,
-          lty = c(1, 2, 2),
-          bty = "n"
-        )
-      } else {
-        legend("topright",
-          legend = c(
-            paste0(input$deform_pc, " = ", input$deform_pc_min),
-            paste0(input$deform_pc, " = ", input$deform_pc_max)
-          ),
-          col = c(input$deform_minus_color, input$deform_plus_color),
-          lwd = input$deform_line_width,
-          lty = c(2, 2),
-          bty = "n"
+          legend = leg_labels,
+          col    = leg_col,
+          lwd    = input$deform_line_width,
+          lty    = leg_lty,
+          bty    = "n"
         )
       }
 
@@ -5619,6 +6074,7 @@ server <- function(input, output, session) {
       # Check display options
       show_wireframe <- isTRUE(input$deform_show_wireframe) && !is.null(rv$links) && nrow(rv$links) > 0
       show_mean <- isTRUE(input$deform_show_mean)
+      show_points <- isTRUE(input$deform_show_points)
 
       # Draw mean shape
       if (show_mean) {
@@ -5629,28 +6085,41 @@ server <- function(input, output, session) {
             )
           }
         }
-        points(ref_plot[,1], ref_plot[,2], pch = 21, bg = input$deform_point_color, cex = 1.5)
+        if (show_points) {
+          points(ref_plot[,1], ref_plot[,2], pch = 21, bg = input$deform_point_color, cex = input$deform_point_size)
+        }
       }
+
+      show_minus_shape <- isTRUE(input$deform_show_minus)
+      show_plus_shape  <- isTRUE(input$deform_show_plus)
 
       # Draw minus shape
-      if (show_wireframe) {
-        for (i in seq_len(nrow(rv$links))) {
-          lines(shape_minus_plot[rv$links[i, ], 1], shape_minus_plot[rv$links[i, ], 2],
-            col = input$deform_minus_color, lwd = input$deform_line_width, lty = 2
-          )
+      if (show_minus_shape) {
+        if (show_wireframe) {
+          for (i in seq_len(nrow(rv$links))) {
+            lines(shape_minus_plot[rv$links[i, ], 1], shape_minus_plot[rv$links[i, ], 2],
+              col = input$deform_minus_color, lwd = input$deform_line_width, lty = 2
+            )
+          }
+        }
+        if (show_points) {
+          points(shape_minus_plot[,1], shape_minus_plot[,2], pch = 21, bg = input$deform_minus_color, cex = input$deform_point_size * 0.8)
         }
       }
-      points(shape_minus_plot[,1], shape_minus_plot[,2], pch = 21, bg = input$deform_minus_color, cex = 1.2)
 
       # Draw plus shape
-      if (show_wireframe) {
-        for (i in seq_len(nrow(rv$links))) {
-          lines(shape_plus_plot[rv$links[i, ], 1], shape_plus_plot[rv$links[i, ], 2],
-            col = input$deform_plus_color, lwd = input$deform_line_width, lty = 2
-          )
+      if (show_plus_shape) {
+        if (show_wireframe) {
+          for (i in seq_len(nrow(rv$links))) {
+            lines(shape_plus_plot[rv$links[i, ], 1], shape_plus_plot[rv$links[i, ], 2],
+              col = input$deform_plus_color, lwd = input$deform_line_width, lty = 2
+            )
+          }
+        }
+        if (show_points) {
+          points(shape_plus_plot[,1], shape_plus_plot[,2], pch = 21, bg = input$deform_plus_color, cex = input$deform_point_size * 0.8)
         }
       }
-      points(shape_plus_plot[,1], shape_plus_plot[,2], pch = 21, bg = input$deform_plus_color, cex = 1.2)
 
       # Add landmark numbers if enabled
       if (isTRUE(input$deform_show_landmarks)) {
@@ -5660,28 +6129,31 @@ server <- function(input, output, session) {
       }
 
       # Legend based on what's shown
+      leg_labels <- character(0)
+      leg_col    <- character(0)
+      leg_lty    <- integer(0)
       if (show_mean) {
+        leg_labels <- c(leg_labels, "Mean Shape")
+        leg_col    <- c(leg_col, input$deform_mean_color)
+        leg_lty    <- c(leg_lty, 1L)
+      }
+      if (show_minus_shape) {
+        leg_labels <- c(leg_labels, paste0(input$deform_pc, " = ", input$deform_pc_min))
+        leg_col    <- c(leg_col, input$deform_minus_color)
+        leg_lty    <- c(leg_lty, 2L)
+      }
+      if (show_plus_shape) {
+        leg_labels <- c(leg_labels, paste0(input$deform_pc, " = ", input$deform_pc_max))
+        leg_col    <- c(leg_col, input$deform_plus_color)
+        leg_lty    <- c(leg_lty, 2L)
+      }
+      if (length(leg_labels) > 0) {
         legend("topright",
-          legend = c(
-            "Mean Shape",
-            paste0(input$deform_pc, " = ", input$deform_pc_min),
-            paste0(input$deform_pc, " = ", input$deform_pc_max)
-          ),
-          col = c(input$deform_mean_color, input$deform_minus_color, input$deform_plus_color),
-          lwd = input$deform_line_width,
-          lty = c(1, 2, 2),
-          bty = "n"
-        )
-      } else {
-        legend("topright",
-          legend = c(
-            paste0(input$deform_pc, " = ", input$deform_pc_min),
-            paste0(input$deform_pc, " = ", input$deform_pc_max)
-          ),
-          col = c(input$deform_minus_color, input$deform_plus_color),
-          lwd = input$deform_line_width,
-          lty = c(2, 2),
-          bty = "n"
+          legend = leg_labels,
+          col    = leg_col,
+          lwd    = input$deform_line_width,
+          lty    = leg_lty,
+          bty    = "n"
         )
       }
 
@@ -5936,9 +6408,11 @@ server <- function(input, output, session) {
              main = paste0("Procrustes Shapes - ", input$procrustes_pc, " = ", input$procrustes_pc_value))
         
         for (i in seq_len(dim(coords_plot)[3])) {
-          points(coords_plot[, 1, i], coords_plot[, 2, i], 
-                 col = input$procrustes_point_color, 
-                 pch = 19, cex = input$procrustes_point_size * 0.5)
+          if (isTRUE(input$procrustes_show_data_points)) {
+            points(coords_plot[, 1, i], coords_plot[, 2, i], 
+                   col = input$procrustes_point_color, 
+                   pch = 19, cex = input$procrustes_point_size * 0.5)
+          }
           
           if (input$procrustes_show_wireframe && !is.null(current_links) && nrow(current_links) > 0) {
             for (j in seq_len(nrow(current_links))) {
@@ -5951,8 +6425,10 @@ server <- function(input, output, session) {
         }
         
         if (input$procrustes_show_mean) {
-          points(ref_plot, pch = 21, bg = input$procrustes_mean_color, 
-                 cex = input$procrustes_point_size * 1.2)
+          if (isTRUE(input$procrustes_show_data_points)) {
+            points(ref_plot, pch = 21, bg = input$procrustes_mean_color, 
+                   cex = input$procrustes_point_size * 1.2)
+          }
           if (!is.null(current_links) && nrow(current_links) > 0) {
             for (i in seq_len(nrow(current_links))) {
               lines(ref_plot[current_links[i, ], 1], ref_plot[current_links[i, ], 2],
@@ -5984,8 +6460,10 @@ server <- function(input, output, session) {
                             input$procrustes_pc, " = ", input$procrustes_pc_value))
           
           # Draw specimen
-          points(spec_coords, pch = 21, bg = input$procrustes_point_color, 
-                 cex = input$procrustes_point_size)
+          if (isTRUE(input$procrustes_show_data_points)) {
+            points(spec_coords, pch = 21, bg = input$procrustes_point_color, 
+                   cex = input$procrustes_point_size)
+          }
           
           if (input$procrustes_show_wireframe && !is.null(current_links) && nrow(current_links) > 0) {
             for (i in seq_len(nrow(current_links))) {
@@ -6003,8 +6481,10 @@ server <- function(input, output, session) {
           
           # Draw deformed shape if requested
           if (input$procrustes_show_mean) {
-            points(deformed_plot, pch = 21, bg = input$procrustes_mean_color, 
-                   cex = input$procrustes_point_size * 0.8)
+            if (isTRUE(input$procrustes_show_data_points)) {
+              points(deformed_plot, pch = 21, bg = input$procrustes_mean_color, 
+                     cex = input$procrustes_point_size * 0.8)
+            }
             if (!is.null(current_links) && nrow(current_links) > 0) {
               for (i in seq_len(nrow(current_links))) {
                 lines(deformed_plot[current_links[i, ], 1], deformed_plot[current_links[i, ], 2],
@@ -6115,9 +6595,11 @@ server <- function(input, output, session) {
              main = paste0("Procrustes Shapes - ", input$procrustes_pc, " = ", input$procrustes_pc_value))
         
         for (i in seq_len(dim(coords_plot)[3])) {
-          points(coords_plot[, 1, i], coords_plot[, 2, i], 
-                 col = input$procrustes_point_color, 
-                 pch = 19, cex = input$procrustes_point_size * 0.5)
+          if (isTRUE(input$procrustes_show_data_points)) {
+            points(coords_plot[, 1, i], coords_plot[, 2, i], 
+                   col = input$procrustes_point_color, 
+                   pch = 19, cex = input$procrustes_point_size * 0.5)
+          }
           
           if (input$procrustes_show_wireframe && !is.null(current_links) && nrow(current_links) > 0) {
             for (j in seq_len(nrow(current_links))) {
@@ -6130,8 +6612,10 @@ server <- function(input, output, session) {
         }
         
         if (input$procrustes_show_mean) {
-          points(ref_plot, pch = 21, bg = input$procrustes_mean_color, 
-                 cex = input$procrustes_point_size * 1.2)
+          if (isTRUE(input$procrustes_show_data_points)) {
+            points(ref_plot, pch = 21, bg = input$procrustes_mean_color, 
+                   cex = input$procrustes_point_size * 1.2)
+          }
           if (!is.null(current_links) && nrow(current_links) > 0) {
             for (i in seq_len(nrow(current_links))) {
               lines(ref_plot[current_links[i, ], 1], ref_plot[current_links[i, ], 2],
@@ -6163,8 +6647,10 @@ server <- function(input, output, session) {
                             input$procrustes_pc, " = ", input$procrustes_pc_value))
           
           # Draw specimen
-          points(spec_coords, pch = 21, bg = input$procrustes_point_color, 
-                 cex = input$procrustes_point_size)
+          if (isTRUE(input$procrustes_show_data_points)) {
+            points(spec_coords, pch = 21, bg = input$procrustes_point_color, 
+                   cex = input$procrustes_point_size)
+          }
           
           if (input$procrustes_show_wireframe && !is.null(current_links) && nrow(current_links) > 0) {
             for (i in seq_len(nrow(current_links))) {
@@ -6182,8 +6668,10 @@ server <- function(input, output, session) {
           
           # Draw deformed shape if requested
           if (input$procrustes_show_mean) {
-            points(deformed_plot, pch = 21, bg = input$procrustes_mean_color, 
-                   cex = input$procrustes_point_size * 0.8)
+            if (isTRUE(input$procrustes_show_data_points)) {
+              points(deformed_plot, pch = 21, bg = input$procrustes_mean_color, 
+                     cex = input$procrustes_point_size * 0.8)
+            }
             if (!is.null(current_links) && nrow(current_links) > 0) {
               for (i in seq_len(nrow(current_links))) {
                 lines(deformed_plot[current_links[i, ], 1], deformed_plot[current_links[i, ], 2],
@@ -6309,10 +6797,6 @@ server <- function(input, output, session) {
       p <- p + stat_summary(fun = mean, geom = "point", shape = 18, size = 4, color = "red")
     }
     
-    if (isTRUE(input$cs_coord_flip)) {
-      p <- p + coord_flip()
-    }
-    
     if (isTRUE(input$cs_show_significance) && length(levels(cs_data$Group)) >= 2) {
       sig_method <- if (!is.null(input$cs_sig_method)) input$cs_sig_method else "t.test"
       sig_label <- if (!is.null(input$cs_sig_label)) input$cs_sig_label else "stars"
@@ -6325,6 +6809,7 @@ server <- function(input, output, session) {
                                      tip_frac = sig_tip)
     }
     
+    p <- apply_stat_axis_scales(p, "cs")
     p
   })
   
@@ -6397,6 +6882,7 @@ server <- function(input, output, session) {
         axis_text_size = input$allo_axis_text_size
       )
     
+    p <- apply_stat_axis_scales(p, "allo", has_x_range = TRUE, apply_y_flip = FALSE)
     p
   })
   
@@ -6437,12 +6923,24 @@ server <- function(input, output, session) {
     }
     
     # Create plot
+    # Apply flip if requested
+    if (isTRUE(input$vector_flip_x)) ref_coords[, 1] <- -ref_coords[, 1]
+    if (isTRUE(input$vector_flip_y)) ref_coords[, 2] <- -ref_coords[, 2]
+
+    xlim_vec <- if (isTRUE(input$vector_custom_range) && !is.null(input$vector_x_min) && !is.na(input$vector_x_min) &&
+                    !is.null(input$vector_x_max) && !is.na(input$vector_x_max) && input$vector_x_min < input$vector_x_max)
+      c(input$vector_x_min, input$vector_x_max) else NULL
+    ylim_vec <- if (isTRUE(input$vector_custom_range) && !is.null(input$vector_y_min) && !is.na(input$vector_y_min) &&
+                    !is.null(input$vector_y_max) && !is.na(input$vector_y_max) && input$vector_y_min < input$vector_y_max)
+      c(input$vector_y_min, input$vector_y_max) else NULL
+
     plot(ref_coords, pch = 21, bg = "#95a5a6", cex = 1.5,
          main = paste("Shape Difference Vectors:", group1_name, "→", group2_name),
          xlab = "X Coordinate", ylab = "Y Coordinate",
          asp = 1, cex.main = input$vector_title_size/10,
          cex.lab = input$vector_axis_title_size/10,
-         cex.axis = input$vector_axis_text_size/10)
+         cex.axis = input$vector_axis_text_size/10,
+         xlim = xlim_vec, ylim = ylim_vec)
     
     # Add vectors
     arrows(ref_coords[, 1], ref_coords[, 2],
@@ -6563,22 +7061,18 @@ server <- function(input, output, session) {
     if (isTRUE(input$disp_show_mean)) {
       p <- p + stat_summary(fun = mean, geom = "point", shape = 18, size = 4, color = "red")
     }
-    
+
     if (isTRUE(input$disp_show_centroids)) {
       group_means <- aggregate(Distance_to_Centroid ~ Group, disp_data, mean)
       for (i in seq_len(nrow(group_means))) {
-        p <- p + annotate("segment", 
+        p <- p + annotate("segment",
                          x = i - 0.4, xend = i + 0.4,
-                         y = group_means$Distance_to_Centroid[i], 
+                         y = group_means$Distance_to_Centroid[i],
                          yend = group_means$Distance_to_Centroid[i],
                          color = "red", linewidth = 2)
       }
     }
-    
-    if (isTRUE(input$disp_coord_flip)) {
-      p <- p + coord_flip()
-    }
-    
+
     if (isTRUE(input$disp_show_significance) && length(levels(disp_data$Group)) >= 2) {
       sig_method <- if (!is.null(input$disp_sig_method)) input$disp_sig_method else "t.test"
       sig_label <- if (!is.null(input$disp_sig_label)) input$disp_sig_label else "stars"
@@ -6591,6 +7085,7 @@ server <- function(input, output, session) {
                                      tip_frac = sig_tip)
     }
     
+    p <- apply_stat_axis_scales(p, "disp")
     p
   })
   
@@ -6646,12 +7141,22 @@ server <- function(input, output, session) {
        p <- p + geom_line(aes(y = .data$Cumulative, group = 1), 
                         color = input$eigen_line_color, linewidth = line_w) +
          geom_point(aes(y = .data$Cumulative), 
-                         color = input$eigen_line_color, size = 3) +
-               scale_y_continuous(
-                 name = y_lab,
-                 sec.axis = sec_axis(~., name = "Cumulative % Variance")
-               )
+                         color = input$eigen_line_color, size = 3)
     }
+
+    # Apply custom Y range and cumulative dual axis together
+    eigen_y_args <- list()
+    eigen_y_args$name <- y_lab
+    if (isTRUE(input$eigen_show_cumulative)) {
+      eigen_y_args$sec.axis <- sec_axis(~., name = "Cumulative % Variance")
+    }
+    if (isTRUE(input$eigen_custom_range)) {
+      y_min_v <- input$eigen_y_min; y_max_v <- input$eigen_y_max
+      if (!is.null(y_min_v) && !is.null(y_max_v) && !is.na(y_min_v) && !is.na(y_max_v) && y_min_v < y_max_v) {
+        eigen_y_args$limits <- c(y_min_v, y_max_v)
+      }
+    }
+    p <- p + do.call(scale_y_continuous, eigen_y_args)
     
     if (isTRUE(input$eigen_coord_flip)) {
       p <- p + coord_flip()
@@ -6755,9 +7260,11 @@ server <- function(input, output, session) {
       
       # Draw all specimens
       for (i in seq_len(dim(coords_plot)[3])) {
-        points(coords_plot[, 1, i], coords_plot[, 2, i], 
-               col = input$procrustes_point_color, 
-               pch = 19, cex = input$procrustes_point_size * 0.5)
+        if (isTRUE(input$procrustes_show_data_points)) {
+          points(coords_plot[, 1, i], coords_plot[, 2, i], 
+                 col = input$procrustes_point_color, 
+                 pch = 19, cex = input$procrustes_point_size * 0.5)
+        }
         
         if (input$procrustes_show_wireframe && !is.null(current_links) && nrow(current_links) > 0) {
           # Use adjustcolor for transparency (alpha not supported in lines())
@@ -6773,8 +7280,10 @@ server <- function(input, output, session) {
       
       # Draw mean shape if requested
       if (input$procrustes_show_mean) {
-        points(ref_plot, pch = 21, bg = input$procrustes_mean_color, 
-               cex = input$procrustes_point_size * 1.2)
+        if (isTRUE(input$procrustes_show_data_points)) {
+          points(ref_plot, pch = 21, bg = input$procrustes_mean_color, 
+                 cex = input$procrustes_point_size * 1.2)
+        }
         if (!is.null(current_links) && nrow(current_links) > 0) {
           for (i in seq_len(nrow(current_links))) {
             lines(ref_plot[current_links[i, ], 1], ref_plot[current_links[i, ], 2],
@@ -6810,8 +7319,10 @@ server <- function(input, output, session) {
                         input$procrustes_pc, " = ", input$procrustes_pc_value))
       
       # Draw specimen
-      points(spec_coords, pch = 21, bg = input$procrustes_point_color, 
-             cex = input$procrustes_point_size)
+      if (isTRUE(input$procrustes_show_data_points)) {
+        points(spec_coords, pch = 21, bg = input$procrustes_point_color, 
+               cex = input$procrustes_point_size)
+      }
       
       if (input$procrustes_show_wireframe && !is.null(current_links) && nrow(current_links) > 0) {
         for (i in seq_len(nrow(current_links))) {
@@ -6830,8 +7341,10 @@ server <- function(input, output, session) {
       
       # Draw deformed shape if requested
       if (input$procrustes_show_mean) {
-        points(deformed_plot, pch = 21, bg = input$procrustes_mean_color, 
-               cex = input$procrustes_point_size * 0.8)
+        if (isTRUE(input$procrustes_show_data_points)) {
+          points(deformed_plot, pch = 21, bg = input$procrustes_mean_color, 
+                 cex = input$procrustes_point_size * 0.8)
+        }
         if (!is.null(current_links) && nrow(current_links) > 0) {
           for (i in seq_len(nrow(current_links))) {
             lines(deformed_plot[current_links[i, ], 1], deformed_plot[current_links[i, ], 2],
@@ -6888,13 +7401,15 @@ server <- function(input, output, session) {
       # Plot all specimens
       for (i in seq_len(dim(rv$gpa$coords)[3])) {
         spec <- rv$gpa$coords[, , i]
-        p <- p %>% add_trace(
-          x = spec[, 1], y = spec[, 2], z = spec[, 3],
-          marker = list(size = input$procrustes_point_size * 2, color = input$procrustes_point_color, opacity = 0.3),
-          name = if (!is.null(rv$scores$Specimen)) rv$scores$Specimen[i] else paste0("Spec_", i),
-          showlegend = FALSE, hoverinfo = "text",
-          text = if (!is.null(rv$scores$Specimen)) rv$scores$Specimen[i] else paste0("Specimen ", i)
-        )
+        if (isTRUE(input$procrustes_show_data_points)) {
+          p <- p %>% add_trace(
+            x = spec[, 1], y = spec[, 2], z = spec[, 3],
+            marker = list(size = input$procrustes_point_size * 2, color = input$procrustes_point_color, opacity = 0.3),
+            name = if (!is.null(rv$scores$Specimen)) rv$scores$Specimen[i] else paste0("Spec_", i),
+            showlegend = FALSE, hoverinfo = "text",
+            text = if (!is.null(rv$scores$Specimen)) rv$scores$Specimen[i] else paste0("Specimen ", i)
+          )
+        }
         # Wireframe for each specimen
         if (isTRUE(input$procrustes_show_wireframe) && !is.null(current_links) && nrow(current_links) > 0) {
           for (j in seq_len(nrow(current_links))) {
@@ -6939,16 +7454,18 @@ server <- function(input, output, session) {
       if (is.na(spec_idx)) return(NULL)
       spec <- rv$gpa$coords[, , spec_idx]
 
-      p <- p %>% add_trace(
-        type = "scatter3d", mode = pt_mode,
-        x = spec[, 1], y = spec[, 2], z = spec[, 3],
-        marker = list(size = input$procrustes_point_size * 3, color = input$procrustes_point_color),
-        name = input$procrustes_specimen, showlegend = TRUE,
-        text = if (show_lm_numbers) lm_labels else "",
-        textposition = "top center", textfont = lm_font,
-        hoverinfo = if (show_lm_numbers) "text" else "none",
-        hovertext = if (show_lm_numbers) paste0("LM ", seq_len(nrow(spec))) else ""
-      )
+      if (isTRUE(input$procrustes_show_data_points)) {
+        p <- p %>% add_trace(
+          type = "scatter3d", mode = pt_mode,
+          x = spec[, 1], y = spec[, 2], z = spec[, 3],
+          marker = list(size = input$procrustes_point_size * 3, color = input$procrustes_point_color),
+          name = input$procrustes_specimen, showlegend = TRUE,
+          text = if (show_lm_numbers) lm_labels else "",
+          textposition = "top center", textfont = lm_font,
+          hoverinfo = if (show_lm_numbers) "text" else "none",
+          hovertext = if (show_lm_numbers) paste0("LM ", seq_len(nrow(spec))) else ""
+        )
+      }
       if (isTRUE(input$procrustes_show_wireframe) && !is.null(current_links) && nrow(current_links) > 0) {
         for (j in seq_len(nrow(current_links))) {
           idx <- current_links[j, ]
@@ -7190,7 +7707,7 @@ server <- function(input, output, session) {
     )
   }
 
-  draw_deformation_plot <- function(deform_data, bg = input$plot_bg, links = rv$links, show_wireframe = isTRUE(input$deform_show_wireframe) && !is.null(rv$links) && nrow(rv$links) > 0, show_mean = isTRUE(input$deform_show_mean), show_landmarks = isTRUE(input$deform_show_landmarks), mean_color = input$deform_mean_color, point_color = input$deform_point_color, minus_color = input$deform_minus_color, plus_color = input$deform_plus_color, line_width = input$deform_line_width, landmark_size = input$deform_landmark_size, landmark_color = input$deform_landmark_color, mean_label = "Mean Shape") {
+  draw_deformation_plot <- function(deform_data, bg = input$plot_bg, links = rv$links, show_wireframe = isTRUE(input$deform_show_wireframe) && !is.null(rv$links) && nrow(rv$links) > 0, show_mean = isTRUE(input$deform_show_mean), show_points = isTRUE(input$deform_show_points), show_landmarks = isTRUE(input$deform_show_landmarks), mean_color = input$deform_mean_color, point_color = input$deform_point_color, minus_color = input$deform_minus_color, plus_color = input$deform_plus_color, line_width = input$deform_line_width, point_size = if (!is.null(input$deform_point_size)) input$deform_point_size else 1.5, landmark_size = input$deform_landmark_size, landmark_color = input$deform_landmark_color, mean_label = "Mean Shape") {
     par(bg = bg, mar = c(4, 4, 3, 1))
 
     all_coords <- rbind(deform_data$ref_plot, deform_data$shape_minus_plot, deform_data$shape_plus_plot)
@@ -7214,7 +7731,9 @@ server <- function(input, output, session) {
           lines(deform_data$ref_plot[links[i, ], 1], deform_data$ref_plot[links[i, ], 2], col = mean_color, lwd = line_width)
         }
       }
-      points(deform_data$ref_plot[, 1], deform_data$ref_plot[, 2], pch = 21, bg = point_color, cex = 1.5)
+      if (show_points) {
+        points(deform_data$ref_plot[, 1], deform_data$ref_plot[, 2], pch = 21, bg = point_color, cex = point_size)
+      }
     }
 
     if (show_wireframe) {
@@ -7224,8 +7743,10 @@ server <- function(input, output, session) {
       }
     }
 
-    points(deform_data$shape_minus_plot[, 1], deform_data$shape_minus_plot[, 2], pch = 21, bg = minus_color, cex = 1.2)
-    points(deform_data$shape_plus_plot[, 1], deform_data$shape_plus_plot[, 2], pch = 21, bg = plus_color, cex = 1.2)
+    if (show_points) {
+      points(deform_data$shape_minus_plot[, 1], deform_data$shape_minus_plot[, 2], pch = 21, bg = minus_color, cex = point_size * 0.8)
+      points(deform_data$shape_plus_plot[, 1], deform_data$shape_plus_plot[, 2], pch = 21, bg = plus_color, cex = point_size * 0.8)
+    }
 
     if (show_landmarks) {
       text(
@@ -7493,9 +8014,6 @@ server <- function(input, output, session) {
     if (isTRUE(input$cs_show_mean)) {
       p <- p + stat_summary(fun = mean, geom = "point", shape = 18, size = 4, color = "red")
     }
-    if (isTRUE(input$cs_coord_flip)) {
-      p <- p + coord_flip()
-    }
 
     if (isTRUE(input$cs_show_significance) && length(levels(cs_data$Group)) >= 2) {
       sig_method <- if (!is.null(input$cs_sig_method)) input$cs_sig_method else "t.test"
@@ -7509,6 +8027,7 @@ server <- function(input, output, session) {
                                      tip_frac = sig_tip)
     }
 
+    p <- apply_stat_axis_scales(p, "cs")
     p
   }
 
@@ -7568,7 +8087,7 @@ server <- function(input, output, session) {
         axis.title = element_text(size = input$allo_axis_title_size),
         axis.text = element_text(size = input$allo_axis_text_size),
         legend.position = "bottom"
-      )
+      ) |> apply_stat_axis_scales("allo", has_x_range = TRUE, apply_y_flip = FALSE)
   }
 
   build_dispersion_download_plot <- function(base_size = NULL, title = "Morphological Dispersion by Group", x_label = "Group", y_label = "Distance to Centroid") {
@@ -7631,8 +8150,22 @@ server <- function(input, output, session) {
     if (isTRUE(input$disp_show_mean)) {
       p <- p + stat_summary(fun = mean, geom = "point", shape = 18, size = 4, color = "red")
     }
-    if (isTRUE(input$disp_coord_flip)) {
-      p <- p + coord_flip()
+
+    if (isTRUE(input$disp_show_ellipse)) {
+      ell_level <- if (!is.null(input$disp_ellipse_level)) input$disp_ellipse_level else 0.95
+      p <- p + stat_ellipse(aes(color = .data$Group), level = ell_level, linewidth = 0.8) +
+        scale_color_manual(values = group_colors, guide = "none")
+    }
+
+    if (isTRUE(input$disp_show_centroids)) {
+      group_means <- aggregate(Distance_to_Centroid ~ Group, disp_data, mean)
+      for (i in seq_len(nrow(group_means))) {
+        p <- p + annotate("segment",
+                         x = i - 0.4, xend = i + 0.4,
+                         y = group_means$Distance_to_Centroid[i],
+                         yend = group_means$Distance_to_Centroid[i],
+                         color = "red", linewidth = 2)
+      }
     }
 
     if (isTRUE(input$disp_show_significance) && length(levels(disp_data$Group)) >= 2) {
@@ -7647,6 +8180,7 @@ server <- function(input, output, session) {
                                      tip_frac = sig_tip)
     }
 
+    p <- apply_stat_axis_scales(p, "disp")
     p
   }
 
@@ -7687,9 +8221,21 @@ server <- function(input, output, session) {
     if (isTRUE(input$eigen_show_cumulative)) {
       p <- p +
         geom_line(aes(y = .data$Cumulative, group = 1), color = input$eigen_line_color, linewidth = line_w) +
-        geom_point(aes(y = .data$Cumulative), color = input$eigen_line_color, size = 3) +
-        scale_y_continuous(name = y_label, sec.axis = sec_axis(~., name = "Cumulative % Variance"))
+        geom_point(aes(y = .data$Cumulative), color = input$eigen_line_color, size = 3)
     }
+
+    eigen_y_args <- list(name = y_label)
+    if (isTRUE(input$eigen_show_cumulative)) {
+      eigen_y_args$sec.axis <- sec_axis(~., name = "Cumulative % Variance")
+    }
+    if (isTRUE(input$eigen_custom_range)) {
+      y_min_v <- input$eigen_y_min; y_max_v <- input$eigen_y_max
+      if (!is.null(y_min_v) && !is.null(y_max_v) && !is.na(y_min_v) && !is.na(y_max_v) && y_min_v < y_max_v) {
+        eigen_y_args$limits <- c(y_min_v, y_max_v)
+      }
+    }
+    p <- p + do.call(scale_y_continuous, eigen_y_args)
+
     if (isTRUE(input$eigen_coord_flip)) {
       p <- p + coord_flip()
     }
@@ -7721,9 +8267,20 @@ server <- function(input, output, session) {
       diff_coords <- matrix(diff_coords, ncol = 2)
     }
 
+    if (isTRUE(input$vector_flip_x)) ref_coords[, 1] <- -ref_coords[, 1]
+    if (isTRUE(input$vector_flip_y)) ref_coords[, 2] <- -ref_coords[, 2]
+
+    xlim_vec <- if (isTRUE(input$vector_custom_range) && !is.null(input$vector_x_min) && !is.na(input$vector_x_min) &&
+                    !is.null(input$vector_x_max) && !is.na(input$vector_x_max) && input$vector_x_min < input$vector_x_max)
+      c(input$vector_x_min, input$vector_x_max) else NULL
+    ylim_vec <- if (isTRUE(input$vector_custom_range) && !is.null(input$vector_y_min) && !is.na(input$vector_y_min) &&
+                    !is.null(input$vector_y_max) && !is.na(input$vector_y_max) && input$vector_y_min < input$vector_y_max)
+      c(input$vector_y_min, input$vector_y_max) else NULL
+
     plot(ref_coords, pch = 21, bg = "#95a5a6", cex = 1.5,
       main = paste("Shape Difference Vectors:", group1_name, "→", group2_name),
-      xlab = "X Coordinate", ylab = "Y Coordinate", asp = 1
+      xlab = "X Coordinate", ylab = "Y Coordinate", asp = 1,
+      xlim = xlim_vec, ylim = ylim_vec
     )
     arrows(
       ref_coords[, 1], ref_coords[, 2],
@@ -8230,6 +8787,17 @@ server <- function(input, output, session) {
         safe_update_checkbox("pca_show_labels", saved_inputs$pca_show_labels)
         safe_update_checkbox("pca_flip_x", saved_inputs$pca_flip_x)
         safe_update_checkbox("pca_flip_y", saved_inputs$pca_flip_y)
+        safe_update_checkbox("pca_dual_axis", saved_inputs$pca_dual_axis)
+        safe_update_checkbox("pca_custom_range", saved_inputs$pca_custom_range)
+        safe_update_numeric("pca_x_min", saved_inputs$pca_x_min)
+        safe_update_numeric("pca_x_max", saved_inputs$pca_x_max)
+        safe_update_numeric("pca_y_min", saved_inputs$pca_y_min)
+        safe_update_numeric("pca_y_max", saved_inputs$pca_y_max)
+        safe_update_numeric("pca_z_min", saved_inputs$pca_z_min)
+        safe_update_numeric("pca_z_max", saved_inputs$pca_z_max)
+        safe_update_checkbox("pca_custom_breaks", saved_inputs$pca_custom_breaks)
+        safe_update_numeric("pca_x_interval", saved_inputs$pca_x_interval)
+        safe_update_numeric("pca_y_interval", saved_inputs$pca_y_interval)
         safe_update_select("pca_spread_type", saved_inputs$pca_spread_type)
         safe_update_checkbox("pca_spread_customize", saved_inputs$pca_spread_customize)
         safe_update_slider("pca_ellipse_level", saved_inputs$pca_ellipse_level)
@@ -8242,9 +8810,9 @@ server <- function(input, output, session) {
         safe_update_select("pc_x", saved_inputs$pc_x)
         safe_update_select("pc_y", saved_inputs$pc_y)
         safe_update_select("pc_z", saved_inputs$pc_z)
-        safe_update_slider("pca_3d_point_size", saved_inputs$pca_3d_point_size)
+        safe_update_slider("pca_point_size", saved_inputs$pca_point_size)
+        safe_update_slider("pca_point_stroke", saved_inputs$pca_point_stroke)
         safe_update_checkbox("pca_bw_auto_shapes", saved_inputs$pca_bw_auto_shapes)
-        safe_update_slider("pca_bw_point_size", saved_inputs$pca_bw_point_size)
         safe_update_colour("plot_bg", saved_inputs$plot_bg)
         safe_update_checkbox("use_custom_colors", saved_inputs$use_custom_colors)
         safe_update_numeric("pca_download_width", saved_inputs$pca_download_width)
