@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="www/images/logo.png" alt="MorphoStat Logo" height="80">
+  <img src="www/images/Logo_full.png" alt="MorphoStat Logo" height="80">
 </p>
 
 # MorphoStat
